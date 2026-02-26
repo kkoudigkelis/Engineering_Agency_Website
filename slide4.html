@@ -473,6 +473,21 @@ function drawB(now){
   requestAnimationFrame(drawB);
 }
 requestAnimationFrame(drawB);
+
+// Forward upward scroll at top to parent for back-navigation to slide3
+window.addEventListener('wheel', function(e) {
+  if (sw.scrollTop <= 5 && e.deltaY < 0) {
+    window.parent.postMessage({type: 'iframe-wheel', deltaY: e.deltaY}, '*');
+  }
+}, {passive: true});
+var _touchY4 = 0;
+window.addEventListener('touchstart', function(e) { _touchY4 = e.touches[0].clientY; });
+window.addEventListener('touchend', function(e) {
+  var dy = _touchY4 - e.changedTouches[0].clientY;
+  if (dy < -50 && sw.scrollTop <= 5) {
+    window.parent.postMessage({type: 'slide-nav', dir: 'prev'}, '*');
+  }
+});
 </script>
 </body>
 </html>

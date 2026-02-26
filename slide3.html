@@ -96,7 +96,7 @@ canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
   max-width:400px;
   opacity:0;
   transform:translateY(12px);
-  transition:all .8s ease;
+  transition:opacity .4s ease, transform .4s ease;
 }
 .phase-detail.visible{opacity:1;transform:translateY(0)}
 
@@ -206,7 +206,7 @@ nav .r{font-size:10px;color:#5a5550;letter-spacing:1px;font-weight:300}
 
 <script>
 // --- PHASE DATA ---
-const phases = [
+var phases = [
   {
     num:'0.1', title:'Assess',
     desc:'Map actual workflows, activate teams, align technical landscape with business vision.',
@@ -239,58 +239,188 @@ const phases = [
   }
 ];
 
-let current = 0;
-const detail = document.getElementById('detail');
-const items = document.querySelectorAll('.phase-item');
+var current = 0;
+var animatedPhase = 0;
+var phaseTimeout = null;
+var detail = document.getElementById('detail');
+var items = document.querySelectorAll('.phase-item');
 
-function showPhase(idx){
-  current = idx;
-  // Update left list
-  items.forEach((el,i) => {
-    el.classList.toggle('active', i <= idx);
-  });
-  // Update right detail
-  detail.classList.remove('visible');
-  setTimeout(()=>{
-    const p = phases[idx];
-    detail.innerHTML = `
-      <div class="pd-num">${p.num}</div>
-      <div class="pd-title">${p.title}</div>
-      <div class="pd-desc">${p.desc}</div>
-      <div class="pd-metric-label">${p.metricLabel}</div>
-      <div class="pd-metric">${p.metric}</div>
-    `;
-    detail.classList.add('visible');
-  }, 300);
+function setDetail(idx){
+  var p = phases[idx];
+  detail.innerHTML =
+    '<div class="pd-num">'+p.num+'</div>'+
+    '<div class="pd-title">'+p.title+'</div>'+
+    '<div class="pd-desc">'+p.desc+'</div>'+
+    '<div class="pd-metric-label">'+p.metricLabel+'</div>'+
+    '<div class="pd-metric">'+p.metric+'</div>';
 }
 
-// Click to navigate
-items.forEach(el => {
-  el.addEventListener('click', () => showPhase(+el.dataset.idx));
+function showPhase(idx, speed){
+  if(idx < 0 || idx >= phases.length) return;
+  if(idx === current && detail.classList.contains('visible')) return;
+  var spd = (speed !== undefined) ? speed : 300;
+  current = idx;
+
+  // Cancel any pending content swap
+  if(phaseTimeout){ clearTimeout(phaseTimeout); phaseTimeout = null; }
+
+  // Update left sidebar immediately
+  items.forEach(function(el, i){
+    el.classList.toggle('active', i <= idx);
+  });
+
+  if(spd === 0){
+    // Instant update (no animation)
+    setDetail(idx);
+    detail.classList.add('visible');
+    return;
+  }
+
+  // Fade out, swap content, fade in
+  detail.classList.remove('visible');
+  phaseTimeout = setTimeout(function(){
+    setDetail(idx);
+    detail.classList.add('visible');
+    phaseTimeout = null;
+  }, spd);
+}
+
+// --- Click to navigate ---
+items.forEach(function(el){
+  el.addEventListener('click', function(){
+    showPhase(+el.dataset.idx, 200);
+    resetIdleTimer();
+  });
 });
 
-// Auto-advance
-let timer = setInterval(()=>{
-  showPhase((current+1) % phases.length);
-}, 4500);
+// --- AUTO-ADVANCE ---
+var AUTO_INTERVAL = 4500;
+var IDLE_TIMEOUT = 6000;
+var autoTimer = null;
+var idleTimer = null;
 
-// Reset timer on click
-document.getElementById('phaseList').addEventListener('click', ()=>{
-  clearInterval(timer);
-  timer = setInterval(()=>showPhase((current+1)%phases.length), 4500);
+function startAutoAdvance(){
+  stopAutoAdvance();
+  autoTimer = setInterval(function(){
+    showPhase((current + 1) % phases.length, 300);
+  }, AUTO_INTERVAL);
+}
+
+function stopAutoAdvance(){
+  if(autoTimer){ clearInterval(autoTimer); autoTimer = null; }
+}
+
+function resetIdleTimer(){
+  stopAutoAdvance();
+  if(idleTimer) clearTimeout(idleTimer);
+  idleTimer = setTimeout(startAutoAdvance, IDLE_TIMEOUT);
+}
+
+// Start auto-advance initially
+startAutoAdvance();
+
+// --- SCROLL-DRIVEN PHASE NAVIGATION ---
+var scrollLock = false;
+var SCROLL_COOLDOWN = 600;
+
+// Accumulated delta for trackpad smoothness
+var scrollAccum = 0;
+var SCROLL_THRESHOLD = 40;
+var accumTimer = null;
+
+window.addEventListener('wheel', function(e){
+  if(scrollLock) return;
+
+  // Accumulate small deltas (trackpad) or use single large delta (mouse wheel)
+  scrollAccum += e.deltaY;
+
+  // Clear accumulator after inactivity
+  if(accumTimer) clearTimeout(accumTimer);
+  accumTimer = setTimeout(function(){ scrollAccum = 0; }, 150);
+
+  // Only trigger when accumulated enough
+  if(Math.abs(scrollAccum) < SCROLL_THRESHOLD) return;
+
+  var direction = scrollAccum > 0 ? 1 : -1;
+  scrollAccum = 0;
+
+  resetIdleTimer();
+  scrollLock = true;
+  setTimeout(function(){ scrollLock = false; }, SCROLL_COOLDOWN);
+
+  if(direction > 0){
+    // Scrolling down
+    if(current < phases.length - 1){
+      showPhase(current + 1, 200);
+    } else {
+      // At last phase, tell parent to navigate forward
+      window.parent.postMessage({type:'slide-nav', dir:'next'}, '*');
+    }
+  } else {
+    // Scrolling up
+    if(current > 0){
+      showPhase(current - 1, 200);
+    } else {
+      // At first phase, tell parent to navigate backward
+      window.parent.postMessage({type:'slide-nav', dir:'prev'}, '*');
+    }
+  }
+}, {passive:true});
+
+// --- TOUCH HANDLING ---
+var touchStartY = 0;
+window.addEventListener('touchstart', function(e){
+  touchStartY = e.touches[0].clientY;
+});
+window.addEventListener('touchend', function(e){
+  var dy = touchStartY - e.changedTouches[0].clientY;
+  if(Math.abs(dy) < 50) return;
+
+  resetIdleTimer();
+
+  if(dy > 0){
+    if(current < phases.length - 1){
+      showPhase(current + 1, 200);
+    } else {
+      window.parent.postMessage({type:'slide-nav', dir:'next'}, '*');
+    }
+  } else {
+    if(current > 0){
+      showPhase(current - 1, 200);
+    } else {
+      window.parent.postMessage({type:'slide-nav', dir:'prev'}, '*');
+    }
+  }
+});
+
+// --- LISTEN FOR PARENT MESSAGES ---
+window.addEventListener('message', function(e){
+  if(e.data && e.data.type === 'slide-enter'){
+    stopAutoAdvance();
+    if(idleTimer) clearTimeout(idleTimer);
+    if(e.data.from === 'next'){
+      // Coming back from a later slide — show last phase
+      showPhase(phases.length - 1, 0);
+    } else {
+      // Coming from an earlier slide — show first phase
+      showPhase(0, 0);
+    }
+    // Restart auto-advance
+    startAutoAdvance();
+  }
 });
 
 // Init
-showPhase(0);
+showPhase(0, 0);
 
 // --- CIRCULAR VISUALIZATION ---
-const cv = document.getElementById('viz');
-const c = cv.getContext('2d');
-let W, H;
-const dpr = Math.min(devicePixelRatio, 2);
+var cv = document.getElementById('viz');
+var c = cv.getContext('2d');
+var W, H;
+var dpr = Math.min(devicePixelRatio, 2);
 
 function resize(){
-  const r = cv.getBoundingClientRect();
+  var r = cv.getBoundingClientRect();
   W = r.width; H = r.height;
   cv.width = W * dpr; cv.height = H * dpr;
   c.setTransform(dpr,0,0,dpr,0,0);
@@ -298,13 +428,13 @@ function resize(){
 addEventListener('resize', resize); resize();
 
 // Ring particles
-const ringParts = [];
-for(let i = 0; i < 120; i++){
-  const angle = Math.random() * Math.PI * 2;
-  const ring = Math.floor(Math.random() * 3);
-  const baseR = [140, 200, 260][ring];
+var ringParts = [];
+for(var i = 0; i < 120; i++){
+  var angle = Math.random() * Math.PI * 2;
+  var ring = Math.floor(Math.random() * 3);
+  var baseR = [140, 200, 260][ring];
   ringParts.push({
-    angle, ring, baseR,
+    angle: angle, ring: ring, baseR: baseR,
     speed: (.0003 + Math.random() * .0006) * (ring % 2 === 0 ? 1 : -1),
     size: .5 + Math.random() * 1.8,
     alpha: .1 + Math.random() * .4,
@@ -314,8 +444,8 @@ for(let i = 0; i < 120; i++){
 }
 
 // Arc segments
-const arcs = [];
-for(let i = 0; i < 5; i++){
+var arcs = [];
+for(var i = 0; i < 5; i++){
   arcs.push({
     ring: i % 3,
     baseR: [140, 200, 260][i % 3],
@@ -327,8 +457,8 @@ for(let i = 0; i < 5; i++){
 }
 
 // Floating data points around rings
-const floaters = [];
-for(let i = 0; i < 40; i++){
+var floaters = [];
+for(var i = 0; i < 40; i++){
   floaters.push({
     x: (Math.random() - .5) * 500,
     y: (Math.random() - .5) * 500,
@@ -340,11 +470,11 @@ for(let i = 0; i < 40; i++){
 }
 
 // Signal arcs
-const sigArcs = [];
+var sigArcs = [];
 function spawnSigArc(){
-  const ring = Math.floor(Math.random() * 3);
+  var ring = Math.floor(Math.random() * 3);
   sigArcs.push({
-    ring, baseR: [140, 200, 260][ring],
+    ring: ring, baseR: [140, 200, 260][ring],
     angle: Math.random() * Math.PI * 2,
     speed: .01 + Math.random() * .02,
     life: 0,
@@ -355,109 +485,115 @@ function spawnSigArc(){
 
 function draw(now){
   c.clearRect(0,0,W,H);
-  const cx = W * .5, cy = H * .5;
+  var cx = W * .5, cy = H * .5;
 
-  // Phase-dependent glow intensity
-  const phaseGlow = .02 + (current / 4) * .03;
+  // Smooth phase interpolation for canvas effects
+  animatedPhase += (current - animatedPhase) * 0.08;
+
+  // Phase-dependent glow intensity (smoothly animated)
+  var phaseGlow = .02 + (animatedPhase / 4) * .03;
 
   // Central glow
-  const cp = .5 + .5 * Math.sin(now / 2000);
-  const cg = c.createRadialGradient(cx, cy, 0, cx, cy, 300);
-  cg.addColorStop(0, `rgba(201,169,110,${phaseGlow + cp * .02})`);
-  cg.addColorStop(.4, `rgba(201,169,110,${.008})`);
+  var cp = .5 + .5 * Math.sin(now / 2000);
+  var cg = c.createRadialGradient(cx, cy, 0, cx, cy, 300);
+  cg.addColorStop(0, 'rgba(201,169,110,'+(phaseGlow + cp * .02)+')');
+  cg.addColorStop(.4, 'rgba(201,169,110,.008)');
   cg.addColorStop(1, 'transparent');
   c.fillStyle = cg; c.fillRect(0,0,W,H);
 
   // Draw ring guides
-  for(let r = 0; r < 3; r++){
-    const rad = [140, 200, 260][r];
+  for(var r = 0; r < 3; r++){
+    var rad = [140, 200, 260][r];
     c.beginPath();
     c.arc(cx, cy, rad, 0, Math.PI * 2);
-    c.strokeStyle = `rgba(201,169,110,${.04 + r * .01})`;
+    c.strokeStyle = 'rgba(201,169,110,'+(.04 + r * .01)+')';
     c.lineWidth = .5;
     c.stroke();
   }
 
   // Draw arc segments (rotating)
-  for(const a of arcs){
+  for(var ai = 0; ai < arcs.length; ai++){
+    var a = arcs[ai];
     a.start += a.speed;
     c.beginPath();
     c.arc(cx, cy, a.baseR, a.start, a.start + a.len);
-    c.strokeStyle = `rgba(201,169,110,${a.alpha})`;
+    c.strokeStyle = 'rgba(201,169,110,'+a.alpha+')';
     c.lineWidth = 1.5;
     c.stroke();
   }
 
   // Signal arcs
   if(Math.random() < .04) spawnSigArc();
-  for(let i = sigArcs.length - 1; i >= 0; i--){
-    const s = sigArcs[i];
+  for(var si = sigArcs.length - 1; si >= 0; si--){
+    var s = sigArcs[si];
     s.life += .008;
-    if(s.life > s.maxLife){ sigArcs.splice(i,1); continue; }
+    if(s.life > s.maxLife){ sigArcs.splice(si,1); continue; }
     s.angle += s.speed;
-    const progress = s.life / s.maxLife;
-    const a = Math.sin(progress * Math.PI) * s.bright;
-    const sx = cx + Math.cos(s.angle) * s.baseR;
-    const sy = cy + Math.sin(s.angle) * s.baseR;
-    const g = c.createRadialGradient(sx, sy, 0, sx, sy, 10);
-    g.addColorStop(0, `rgba(220,190,130,${a})`);
-    g.addColorStop(1, 'transparent');
-    c.fillStyle = g;
+    var progress = s.life / s.maxLife;
+    var sa = Math.sin(progress * Math.PI) * s.bright;
+    var sx = cx + Math.cos(s.angle) * s.baseR;
+    var sy = cy + Math.sin(s.angle) * s.baseR;
+    var sg = c.createRadialGradient(sx, sy, 0, sx, sy, 10);
+    sg.addColorStop(0, 'rgba(220,190,130,'+sa+')');
+    sg.addColorStop(1, 'transparent');
+    c.fillStyle = sg;
     c.fillRect(sx-10, sy-10, 20, 20);
     // hot core
     c.beginPath(); c.arc(sx, sy, 1.2, 0, Math.PI*2);
-    c.fillStyle = `rgba(255,240,200,${a*.7})`; c.fill();
+    c.fillStyle = 'rgba(255,240,200,'+(sa*.7)+')'; c.fill();
   }
 
   // Ring particles
-  for(const p of ringParts){
+  for(var pi = 0; pi < ringParts.length; pi++){
+    var p = ringParts[pi];
     p.angle += p.speed;
     p.pulse += p.ps;
-    const pa = .5 + .5 * Math.sin(p.pulse);
-    const r = p.baseR + Math.sin(p.pulse * 2) * 4;
-    const x = cx + Math.cos(p.angle) * r;
-    const y = cy + Math.sin(p.angle) * r;
-    const a = p.alpha * (.5 + pa * .5);
+    var pa = .5 + .5 * Math.sin(p.pulse);
+    var pr = p.baseR + Math.sin(p.pulse * 2) * 4;
+    var px = cx + Math.cos(p.angle) * pr;
+    var py = cy + Math.sin(p.angle) * pr;
+    var pAlpha = p.alpha * (.5 + pa * .5);
 
     // glow
-    const g = c.createRadialGradient(x,y,0,x,y,p.size*4);
-    g.addColorStop(0, `rgba(201,169,110,${a*.3})`);
-    g.addColorStop(1, 'transparent');
-    c.fillStyle = g;
-    c.fillRect(x-p.size*4, y-p.size*4, p.size*8, p.size*8);
+    var pg = c.createRadialGradient(px,py,0,px,py,p.size*4);
+    pg.addColorStop(0, 'rgba(201,169,110,'+(pAlpha*.3)+')');
+    pg.addColorStop(1, 'transparent');
+    c.fillStyle = pg;
+    c.fillRect(px-p.size*4, py-p.size*4, p.size*8, p.size*8);
 
     c.beginPath();
-    c.arc(x, y, p.size * (.6 + pa * .4), 0, Math.PI*2);
-    c.fillStyle = `rgba(220,190,140,${a})`;
+    c.arc(px, py, p.size * (.6 + pa * .4), 0, Math.PI*2);
+    c.fillStyle = 'rgba(220,190,140,'+pAlpha+')';
     c.fill();
   }
 
   // Floating ambient dots
-  for(const f of floaters){
+  for(var fi = 0; fi < floaters.length; fi++){
+    var f = floaters[fi];
     f.x += f.vx; f.y += f.vy;
     if(Math.abs(f.x) > 350) f.vx *= -1;
     if(Math.abs(f.y) > 350) f.vy *= -1;
     c.beginPath();
     c.arc(cx + f.x, cy + f.y, f.size, 0, Math.PI*2);
-    c.fillStyle = `rgba(201,169,110,${f.alpha})`;
+    c.fillStyle = 'rgba(201,169,110,'+f.alpha+')';
     c.fill();
   }
 
-  // Phase progress indicator — arc that grows with current phase
-  const progressAngle = ((current + 1) / 5) * Math.PI * 2;
+  // Phase progress indicator — smooth animated arc
+  var progressAngle = ((animatedPhase + 1) / 5) * Math.PI * 2;
   c.beginPath();
   c.arc(cx, cy, 90, -Math.PI/2, -Math.PI/2 + progressAngle);
-  c.strokeStyle = `rgba(201,169,110,.12)`;
+  c.strokeStyle = 'rgba(201,169,110,.12)';
   c.lineWidth = 2;
   c.stroke();
 
   // Tick marks for each phase
-  for(let i = 0; i < 5; i++){
-    const a = -Math.PI/2 + (i / 5) * Math.PI * 2;
-    const x1 = cx + Math.cos(a) * 85, y1 = cy + Math.sin(a) * 85;
-    const x2 = cx + Math.cos(a) * 95, y2 = cy + Math.sin(a) * 95;
-    c.beginPath(); c.moveTo(x1,y1); c.lineTo(x2,y2);
-    c.strokeStyle = i <= current ? `rgba(201,169,110,.3)` : `rgba(201,169,110,.08)`;
+  for(var ti = 0; ti < 5; ti++){
+    var ta = -Math.PI/2 + (ti / 5) * Math.PI * 2;
+    var tx1 = cx + Math.cos(ta) * 85, ty1 = cy + Math.sin(ta) * 85;
+    var tx2 = cx + Math.cos(ta) * 95, ty2 = cy + Math.sin(ta) * 95;
+    c.beginPath(); c.moveTo(tx1,ty1); c.lineTo(tx2,ty2);
+    c.strokeStyle = ti <= current ? 'rgba(201,169,110,.3)' : 'rgba(201,169,110,.08)';
     c.lineWidth = 1; c.stroke();
   }
 
