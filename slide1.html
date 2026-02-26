@@ -232,6 +232,17 @@ function draw(now) {
   requestAnimationFrame(draw);
 }
 requestAnimationFrame(draw);
+
+// Forward scroll/touch events to parent for slide navigation
+window.addEventListener('wheel', function(e) {
+  window.parent.postMessage({type: 'iframe-wheel', deltaY: e.deltaY}, '*');
+}, {passive: true});
+var _touchY = 0;
+window.addEventListener('touchstart', function(e) { _touchY = e.touches[0].clientY; });
+window.addEventListener('touchend', function(e) {
+  var dy = _touchY - e.changedTouches[0].clientY;
+  if (Math.abs(dy) > 50) window.parent.postMessage({type: 'slide-nav', dir: dy > 0 ? 'next' : 'prev'}, '*');
+});
 </script>
 </body>
 </html>

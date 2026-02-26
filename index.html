@@ -141,11 +141,14 @@ html,body{height:100%;overflow:hidden;background:#060605;font-family:'DM Sans',s
     loaded[idx] = true;
   }
 
-  // Listen for navigation messages from slide iframes (e.g., slide3 phase boundaries)
+  // Listen for navigation messages from slide iframes (wheel forwarding + slide3 phase boundaries)
   window.addEventListener('message', function(e){
-    if(e.data && e.data.type === 'slide-nav'){
+    if(!e.data) return;
+    if(e.data.type === 'slide-nav'){
       if(e.data.dir === 'next') go(cur + 1);
       else if(e.data.dir === 'prev') go(cur - 1);
+    } else if(e.data.type === 'iframe-wheel'){
+      onWheel(e.data.deltaY);
     }
   });
 
@@ -209,9 +212,15 @@ html,body{height:100%;overflow:hidden;background:#060605;font-family:'DM Sans',s
 
   // Set up wheel/touch listeners for slide 1 (already loaded)
   var ifr0 = slides[0].querySelector('iframe');
-  ifr0.addEventListener('load', function(){
+  var ifr0Done = false;
+  function onIfr0Load(){
+    if(ifr0Done) return;
+    ifr0Done = true;
     setupIframeListeners(ifr0, 0);
-  });
+  }
+  ifr0.addEventListener('load', onIfr0Load);
+  // Handle race condition: iframe may have already loaded before this script runs
+  try { if(ifr0.contentDocument && ifr0.contentDocument.readyState !== 'loading') onIfr0Load(); } catch(e){}
 
   // Keyboard
   document.addEventListener('keydown', function(e){
