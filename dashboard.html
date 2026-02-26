@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BTC Accumulation Monitor</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0a0e14; color: #e2e8f0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    #root { max-width: 760px; margin: 0 auto; padding: 20px 24px; min-height: 100vh; }
+    .recharts-tooltip-cursor { stroke: rgba(255,255,255,0.1); }
+  </style>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js"></script>
+  <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+const { ComposedChart, Area, Line, XAxis, YAxis, ReferenceLine, ResponsiveContainer, Tooltip, CartesianGrid } = Recharts;
+
+const C = {
+  bg: "#0a0e14", card: "#12171f", border: "#1e2530",
+  text: "#e2e8f0", dim: "#94a3b8", muted: "#4a5568",
+  green: "#34d399", greenBg: "#0d2e1f",
+  red: "#f87171", redBg: "#2a0f0f",
+  yellow: "#fbbf24", yellowBg: "#2a2000",
+  blue: "#60a5fa", white: "#ffffff", purple: "#a78bfa",
+};
+
+const TODAY = "Feb 26, 2026";
+const PRICE = 68500;
+
+const priceHistory = [
+  { date: "Mar 24", price: 67702, ma50w: 42243, ma200w: 30000, sth: 52000 },
+  { date: "Apr 24", price: 65882, ma50w: 45198, ma200w: 31000, sth: 55000 },
+  { date: "May 24", price: 65266, ma50w: 47428, ma200w: 32000, sth: 58000 },
+  { date: "Jun 24", price: 65899, ma50w: 49275, ma200w: 33000, sth: 60000 },
+  { date: "Jul 24", price: 62805, ma50w: 50505, ma200w: 34000, sth: 61000 },
+  { date: "Aug 24", price: 59921, ma50w: 51290, ma200w: 35000, sth: 62000 },
+  { date: "Sep 24", price: 60359, ma50w: 54153, ma200w: 36000, sth: 61000 },
+  { date: "Oct 24", price: 65577, ma50w: 57284, ma200w: 37000, sth: 63000 },
+  { date: "Nov 24", price: 86571, ma50w: 61332, ma200w: 38000, sth: 72000 },
+  { date: "Dec 24", price: 98233, ma50w: 66018, ma200w: 39500, sth: 85000 },
+  { date: "Jan 25", price: 99993, ma50w: 70767, ma200w: 40500, sth: 92000 },
+  { date: "Feb 25", price: 95291, ma50w: 74458, ma200w: 41000, sth: 95000 },
+  { date: "Mar 25", price: 85076, ma50w: 75906, ma200w: 41500, sth: 93000 },
+  { date: "Apr 25", price: 86448, ma50w: 77620, ma200w: 42000, sth: 88000 },
+  { date: "May 25", price: 103645, ma50w: 80818, ma200w: 42500, sth: 86000 },
+  { date: "Jun 25", price: 105825, ma50w: 84145, ma200w: 43000, sth: 90000 },
+  { date: "Jul 25", price: 115363, ma50w: 88525, ma200w: 43500, sth: 96000 },
+  { date: "Aug 25", price: 114835, ma50w: 93101, ma200w: 44000, sth: 102000 },
+  { date: "Sep 25", price: 113173, ma50w: 97503, ma200w: 44500, sth: 108000 },
+  { date: "Oct 25", price: 114085, ma50w: 101545, ma200w: 45000, sth: 115000 },
+  { date: "Nov 25", price: 96200, ma50w: 102347, ma200w: 45500, sth: 116000 },
+  { date: "Dec 25", price: 89200, ma50w: 101595, ma200w: 46000, sth: 114000 },
+  { date: "Jan 26", price: 83000, ma50w: 100178, ma200w: 46800, sth: 112000 },
+  { date: "Feb 26", price: 72000, ma50w: 98238, ma200w: 47500, sth: 111000 },
+];
+
+const spreadBase = { btc: 67702, sp: 5131, nasdaq: 16300, gold: 2160 };
+const rawPrices = [
+  { date: "Mar 24", btc: 67702, sp: 5131, nasdaq: 16300, gold: 2160 },
+  { date: "Apr 24", btc: 65882, sp: 5131, nasdaq: 16100, gold: 2330 },
+  { date: "May 24", btc: 65266, sp: 5280, nasdaq: 16700, gold: 2350 },
+  { date: "Jun 24", btc: 65899, sp: 5450, nasdaq: 17800, gold: 2340 },
+  { date: "Jul 24", btc: 62805, sp: 5522, nasdaq: 17500, gold: 2430 },
+  { date: "Aug 24", btc: 59921, sp: 5673, nasdaq: 17700, gold: 2500 },
+  { date: "Sep 24", btc: 60359, sp: 5851, nasdaq: 18200, gold: 2570 },
+  { date: "Oct 24", btc: 65577, sp: 5997, nasdaq: 18500, gold: 2740 },
+  { date: "Nov 24", btc: 86571, sp: 6085, nasdaq: 19100, gold: 2680 },
+  { date: "Dec 24", btc: 98233, sp: 6059, nasdaq: 19300, gold: 2630 },
+  { date: "Jan 25", btc: 99993, sp: 6100, nasdaq: 19500, gold: 2800 },
+  { date: "Feb 25", btc: 95291, sp: 5771, nasdaq: 18500, gold: 2870 },
+  { date: "Mar 25", btc: 85076, sp: 5458, nasdaq: 17400, gold: 3100 },
+  { date: "Apr 25", btc: 86448, sp: 5914, nasdaq: 18800, gold: 3350 },
+  { date: "May 25", btc: 103645, sp: 6144, nasdaq: 19400, gold: 3300 },
+  { date: "Jun 25", btc: 105825, sp: 6422, nasdaq: 20300, gold: 3200 },
+  { date: "Jul 25", btc: 115363, sp: 6543, nasdaq: 20800, gold: 3350 },
+  { date: "Aug 25", btc: 114835, sp: 6728, nasdaq: 21400, gold: 3800 },
+  { date: "Sep 25", btc: 113173, sp: 6890, nasdaq: 21800, gold: 3950 },
+  { date: "Oct 25", btc: 114085, sp: 6902, nasdaq: 22000, gold: 4200 },
+  { date: "Nov 25", btc: 96200, sp: 7023, nasdaq: 22200, gold: 4400 },
+  { date: "Dec 25", btc: 89200, sp: 7035, nasdaq: 22300, gold: 4500 },
+  { date: "Jan 26", btc: 83000, sp: 7100, nasdaq: 22500, gold: 5000 },
+  { date: "Feb 26", btc: 68500, sp: 6950, nasdaq: 22900, gold: 5100 },
+];
+
+const spreadData = rawPrices.map(d => {
+  const btcR = (d.btc - spreadBase.btc) / spreadBase.btc * 100;
+  const spR = (d.sp - spreadBase.sp) / spreadBase.sp * 100;
+  const ndqR = (d.nasdaq - spreadBase.nasdaq) / spreadBase.nasdaq * 100;
+  const goldR = (d.gold - spreadBase.gold) / spreadBase.gold * 100;
+  return {
+    date: d.date,
+    vsNasdaq: +(btcR - ndqR).toFixed(1),
+    vsSP: +(btcR - spR).toFixed(1),
+    vsGold: +(btcR - goldR).toFixed(1),
+  };
+});
+
+const realizedLosses = [
+  { date: "Mar 24", intensity: 3 },  { date: "Apr 24", intensity: 10 },
+  { date: "May 24", intensity: 5 },  { date: "Jun 24", intensity: 15 },
+  { date: "Jul 24", intensity: 10 }, { date: "Aug 24", intensity: 20 },
+  { date: "Sep 24", intensity: 8 },  { date: "Oct 24", intensity: 5 },
+  { date: "Nov 24", intensity: 2 },  { date: "Dec 24", intensity: 3 },
+  { date: "Jan 25", intensity: 5 },  { date: "Feb 25", intensity: 8 },
+  { date: "Mar 25", intensity: 18 }, { date: "Apr 25", intensity: 30 },
+  { date: "May 25", intensity: 12 }, { date: "Jun 25", intensity: 8 },
+  { date: "Jul 25", intensity: 5 },  { date: "Aug 25", intensity: 3 },
+  { date: "Sep 25", intensity: 5 },  { date: "Oct 25", intensity: 3 },
+  { date: "Nov 25", intensity: 45 }, { date: "Dec 25", intensity: 60 },
+  { date: "Jan 26", intensity: 70 }, { date: "Feb 26", intensity: 50 },
+];
+
+const capWithAvg = realizedLosses.map((d, i) => {
+  const window = realizedLosses.slice(Math.max(0, i - 5), i + 1);
+  const avg = Math.round(window.reduce((s, w) => s + w.intensity, 0) / window.length);
+  return { ...d, avg };
+});
+
+const leverageData = [
+  { date: "Mar 24", longOI: 25, shortOI: 12 }, { date: "Apr 24", longOI: 22, shortOI: 12 },
+  { date: "May 24", longOI: 24, shortOI: 13 }, { date: "Jun 24", longOI: 19, shortOI: 12 },
+  { date: "Jul 24", longOI: 21, shortOI: 13 }, { date: "Aug 24", longOI: 16, shortOI: 14 },
+  { date: "Sep 24", longOI: 20, shortOI: 13 }, { date: "Oct 24", longOI: 24, shortOI: 14 },
+  { date: "Nov 24", longOI: 38, shortOI: 15 }, { date: "Dec 24", longOI: 48, shortOI: 16 },
+  { date: "Jan 25", longOI: 44, shortOI: 16 }, { date: "Feb 25", longOI: 40, shortOI: 15 },
+  { date: "Mar 25", longOI: 32, shortOI: 16 }, { date: "Apr 25", longOI: 25, shortOI: 18 },
+  { date: "May 25", longOI: 28, shortOI: 17 }, { date: "Jun 25", longOI: 32, shortOI: 17 },
+  { date: "Jul 25", longOI: 38, shortOI: 18 }, { date: "Aug 25", longOI: 42, shortOI: 18 },
+  { date: "Sep 25", longOI: 50, shortOI: 19 }, { date: "Oct 25", longOI: 60, shortOI: 20 },
+  { date: "Nov 25", longOI: 40, shortOI: 22 }, { date: "Dec 25", longOI: 28, shortOI: 26 },
+  { date: "Jan 26", longOI: 20, shortOI: 29 }, { date: "Feb 26", longOI: 18, shortOI: 30 },
+];
+
+const ma50w = 98238;
+const ma200w = 47500;
+const sthCostBasis = 111000;
+
+function computeScore(price, ma, spread, lossIntensity) {
+  const ratio = price / ma;
+  const s1 = Math.max(0, Math.min(100, (1.5 - ratio) / 1.0 * 100));
+  const avgSpread = (spread.vsNasdaq + spread.vsSP + spread.vsGold) / 3;
+  const s2 = Math.max(0, Math.min(100, (50 - avgSpread) / 150 * 100));
+  const s3 = Math.max(0, Math.min(100, lossIntensity));
+  const score = Math.round(0.40 * s1 + 0.35 * s2 + 0.25 * s3);
+  return { score, s1: Math.round(s1), s2: Math.round(s2), s3: Math.round(s3) };
+}
+
+const liveSpread = (() => {
+  const btcR = (PRICE - spreadBase.btc) / spreadBase.btc * 100;
+  const spR = (6950 - spreadBase.sp) / spreadBase.sp * 100;
+  const ndqR = (22900 - spreadBase.nasdaq) / spreadBase.nasdaq * 100;
+  const goldR = (5210 - spreadBase.gold) / spreadBase.gold * 100;
+  return {
+    vsNasdaq: +(btcR - ndqR).toFixed(1),
+    vsSP: +(btcR - spR).toFixed(1),
+    vsGold: +(btcR - goldR).toFixed(1),
+  };
+})();
+
+const lastLev = leverageData[leverageData.length - 1];
+const lastLoss = realizedLosses[realizedLosses.length - 1].intensity;
+const v = computeScore(PRICE, ma50w, liveSpread, lastLoss);
+const shortsGtLongs = lastLev.shortOI > lastLev.longOI;
+const scoreColor = v.score >= 50 ? C.green : v.score >= 20 ? C.yellow : C.red;
+
+const scoreHistory = priceHistory.map((ph, i) => {
+  const sp = spreadData[i];
+  const rl = realizedLosses[i];
+  if (!sp || !rl) return { date: ph.date, score: 0, price: ph.price };
+  const s = computeScore(ph.price, ph.ma50w, sp, rl.intensity);
+  return { date: ph.date, score: s.score, price: ph.price };
+});
+
+function Tip({ active, payload, label }) {
+  if (!active || !payload || !payload.length) return null;
+  return (
+    <div style={{ background: C.card, border: "1px solid " + C.border, borderRadius: 6, padding: "8px 12px", fontSize: 12, color: C.text }}>
+      <div style={{ color: C.dim, marginBottom: 4 }}>{label}</div>
+      {payload.map((p, i) => (
+        <div key={i} style={{ color: p.color, fontFamily: "monospace" }}>
+          {p.name}: {typeof p.value === "number" ? (p.value > 1000 ? "$" + (p.value/1000).toFixed(0) + "K" : p.value + "%") : p.value}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ScoreColor({ val }) {
+  const c = val >= 50 ? C.green : val >= 20 ? C.yellow : C.dim;
+  return <span style={{ fontFamily: "monospace", fontWeight: 700, color: c }}>{val}</span>;
+}
+
+function Dashboard() {
+  const priceToMa50w = PRICE / ma50w;
+  const sthPctBelow = Math.round((1 - PRICE / sthCostBasis) * 100);
+  const last = liveSpread;
+  const allNeg = last.vsNasdaq < 0 && last.vsSP < 0 && last.vsGold < 0;
+  const negCount = [last.vsNasdaq < 0, last.vsSP < 0, last.vsGold < 0].filter(Boolean).length;
+  const lastP = realizedLosses[realizedLosses.length - 1];
+  const peakLong = Math.max(...leverageData.map(d => d.longOI));
+  const oiDrop = Math.round((1 - lastLev.longOI / peakLong) * 100);
+  const gap = lastLev.shortOI - lastLev.longOI;
+
+  return (
+    <div style={{ background: C.bg, color: C.text, minHeight: "100vh", padding: "20px 24px", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", maxWidth: 760, margin: "0 auto" }}>
+      {/* HEADER */}
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ fontSize: 10, color: C.muted, letterSpacing: 1.5, textTransform: "uppercase" }}>BTC Accumulation Monitor &middot; {TODAY}</div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginTop: 4 }}>
+          <div style={{ fontSize: 42, fontWeight: 700, fontFamily: "monospace", lineHeight: 1 }}>
+            ${PRICE.toLocaleString()}
+          </div>
+          <div style={{ textAlign: "right" }}>
+            <div style={{ fontSize: 10, color: C.muted, letterSpacing: 1, textTransform: "uppercase", marginBottom: 2 }}>Accumulation Score</div>
+            <div style={{ fontSize: 48, fontWeight: 800, fontFamily: "monospace", lineHeight: 1, color: scoreColor }}>
+              {v.score}
+            </div>
+            <div style={{ fontSize: 10, color: C.dim }}>/100</div>
+          </div>
+        </div>
+        {/* Three signal bars */}
+        <div style={{ marginTop: 12, display: "grid", gridTemplateColumns: "1fr 1fr 1fr auto", gap: 8, alignItems: "center" }}>
+          {[
+            { label: "\u2460 Trend \u00b7 40%", val: v.s1 },
+            { label: "\u2461 Rel. perf \u00b7 35%", val: v.s2 },
+            { label: "\u2462 Capitulation \u00b7 25%", val: v.s3 },
+          ].map((sig, i) => (
+            <div key={i}>
+              <div style={{ fontSize: 10, color: C.muted, marginBottom: 4 }}>{sig.label}</div>
+              <div style={{ background: C.border, borderRadius: 4, height: 8, overflow: "hidden" }}>
+                <div style={{ width: sig.val + "%", height: "100%", background: sig.val >= 50 ? C.green : sig.val >= 20 ? C.yellow : C.muted, borderRadius: 4 }} />
+              </div>
+              <div style={{ fontSize: 18, fontWeight: 700, fontFamily: "monospace", color: sig.val >= 50 ? C.green : sig.val >= 20 ? C.yellow : C.dim, marginTop: 2 }}>{sig.val}</div>
+            </div>
+          ))}
+          <div style={{ textAlign: "center", padding: "0 8px", opacity: 0.6 }}>
+            <div style={{ fontSize: 10, color: C.muted }}>\u2463 ctx</div>
+            <div style={{ fontSize: 20, fontWeight: 700, fontFamily: "monospace", color: shortsGtLongs ? C.blue : C.muted }}>{shortsGtLongs ? "\u2713" : "\u2717"}</div>
+            <div style={{ fontSize: 9, color: C.dim }}>shorts</div>
+          </div>
+        </div>
+        <div style={{ fontSize: 10, color: C.dim, marginTop: 6, lineHeight: 1.5 }}>
+          Score = 40% \u00d7 \u2460 + 35% \u00d7 \u2461 + 25% \u00d7 \u2462 = {v.score}/100. Every point matters — no tiers, no buckets. Higher = buy more.
+        </div>
+      </div>
+
+      {/* SCORE EVOLUTION CHART */}
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 4 }}>Accumulation Score over time</div>
+        <div style={{ fontSize: 11, color: C.dim, marginBottom: 12 }}>
+          Weighted average of trend, relative performance, and capitulation. Gray dashed = BTC price (right axis).
+        </div>
+        <div style={{ background: C.card, borderRadius: 8, padding: "12px 8px 4px", border: "1px solid " + C.border }}>
+          <ResponsiveContainer width="100%" height={220}>
+            <ComposedChart data={scoreHistory} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+              <defs>
+                <linearGradient id="scoreGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={C.green} stopOpacity={0.4} />
+                  <stop offset="95%" stopColor={C.green} stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+              <XAxis dataKey="date" tick={{ fill: C.muted, fontSize: 9 }} axisLine={{ stroke: C.border }} tickLine={false} interval={2} />
+              <YAxis yAxisId="score" domain={[0, 100]} tick={{ fill: C.muted, fontSize: 10 }} axisLine={false} tickLine={false} ticks={[0, 25, 50, 75, 100]} />
+              <YAxis yAxisId="price" orientation="right" domain={[50000, 130000]} tick={{ fill: C.muted, fontSize: 9 }} axisLine={false} tickLine={false} tickFormatter={val => "$" + val/1000 + "K"} />
+              <Tooltip contentStyle={{ background: C.card, border: "1px solid " + C.border, borderRadius: 6 }} labelStyle={{ color: C.text }} formatter={(val, name) => [name === "BTC" ? "$" + (val/1000).toFixed(1) + "K" : val + "/100", name]} />
+              <Area yAxisId="score" type="monotone" dataKey="score" stroke={C.green} strokeWidth={2.5} fill="url(#scoreGrad)" dot={false} name="Score" />
+              <Line yAxisId="price" type="monotone" dataKey="price" stroke={C.muted} strokeWidth={1} strokeDasharray="4 2" dot={false} name="BTC" />
+            </ComposedChart>
+          </ResponsiveContainer>
+          <div style={{ display: "flex", justifyContent: "center", gap: 16, padding: "6px 0", fontSize: 10 }}>
+            <span style={{ color: C.green }}>\u2501\u2501 Score ({v.score}/100 now)</span>
+            <span style={{ color: C.muted }}>\u254C\u254C BTC price ($68.5K)</span>
+          </div>
+        </div>
+      </div>
+
+      {/* STATUS CARDS */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 8, marginBottom: 24 }}>
+        {[
+          { num: "\u2460", q: "Below trend?", answer: Math.round((1 - priceToMa50w) * 100) + "% below 50w MA", detail: "$" + (PRICE/1000).toFixed(1) + "K vs $" + (ma50w/1000).toFixed(0) + "K trend. Signal: " + v.s1 + "/100.", on: v.s1 >= 40 },
+          { num: "\u2461", q: "Underperforming?", answer: allNeg ? "Yes \u2014 all 3 negative" : negCount + "/3 negative", detail: (allNeg ? "BTC trails stocks AND gold." : negCount + " spread(s) negative.") + " Signal: " + v.s2 + "/100.", on: v.s2 >= 40 },
+          { num: "\u2462", q: "Capitulation?", answer: "Intensity " + lastP.intensity + "/100", detail: "On-chain realized losses. Signal: " + v.s3 + "/100.", on: v.s3 >= 40 },
+          { num: "\u2463", q: "Shorts dominate?", answer: shortsGtLongs ? "Yes \u2014 squeeze fuel" : "Not yet", detail: "Long OI down " + oiDrop + "% from peak. Not scored \u2014 only 3 months data.", on: shortsGtLongs },
+        ].map((d, i) => (
+          <div key={i} style={{
+            background: d.on ? C.greenBg : C.card,
+            border: "1px solid " + (d.on ? C.green + "33" : C.border),
+            borderRadius: 8, padding: "10px 12px",
+          }}>
+            <div style={{ fontSize: 10, color: C.muted, marginBottom: 2 }}>{d.num} {d.q}</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: d.on ? C.green : C.yellow, lineHeight: 1.3 }}>{d.answer}</div>
+            <div style={{ fontSize: 10, color: C.dim, lineHeight: 1.4, marginTop: 4 }}>{d.detail}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* CHART 1: Price vs MAs */}
+      <div style={{ marginBottom: 28 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 4 }}>\u2460 Is the price cheap?</div>
+        <div style={{ fontSize: 11, color: C.dim, marginBottom: 12 }}>
+          BTC vs. 50-week MA (trend), 200-week MA (cycle floor), and STH cost basis.{" "}
+          <span style={{ color: C.green }}>Backtested 11 years: +27% more BTC buying below MA.</span>
+        </div>
+        <div style={{ background: C.card, borderRadius: 8, padding: "12px 8px 4px", border: "1px solid " + C.border }}>
+          <ResponsiveContainer width="100%" height={280}>
+            <ComposedChart data={priceHistory} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+              <XAxis dataKey="date" tick={{ fill: C.muted, fontSize: 9 }} axisLine={{ stroke: C.border }} tickLine={false} interval={2} />
+              <YAxis domain={[25000, 130000]} tick={{ fill: C.muted, fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={val => "$" + val/1000 + "K"} />
+              <Tooltip content={<Tip />} />
+              <Line type="monotone" dataKey="sth" stroke={C.purple} strokeWidth={1.5} strokeDasharray="5 3" dot={false} name="STH cost basis" />
+              <Line type="monotone" dataKey="ma200w" stroke={C.blue} strokeWidth={1.5} strokeDasharray="4 2" dot={false} name="200w MA" />
+              <Line type="monotone" dataKey="ma50w" stroke={C.yellow} strokeWidth={2} dot={false} name="50w MA" />
+              <Line type="monotone" dataKey="price" stroke={C.white} strokeWidth={2.5} dot={false} name="BTC" />
+            </ComposedChart>
+          </ResponsiveContainer>
+          <div style={{ display: "flex", justifyContent: "center", gap: 16, padding: "6px 0", fontSize: 10 }}>
+            <span><span style={{ color: C.white }}>\u2501\u2501</span> <span style={{ color: C.dim }}>BTC ($68.5K)</span></span>
+            <span><span style={{ color: C.yellow }}>\u2501\u2501</span> <span style={{ color: C.dim }}>50w MA ($98K)</span></span>
+            <span><span style={{ color: C.purple }}>\u254C\u254C</span> <span style={{ color: C.dim }}>STH ($111K)</span></span>
+            <span><span style={{ color: C.blue }}>\u254C\u254C</span> <span style={{ color: C.dim }}>200w MA ($47.5K)</span></span>
+          </div>
+        </div>
+      </div>
+
+      {/* CHART 2: Spread vs assets */}
+      <div style={{ marginBottom: 28 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 4 }}>\u2461 Is BTC underperforming everything?</div>
+        <div style={{ fontSize: 11, color: C.dim, marginBottom: 12 }}>
+          BTC return minus each asset since Mar 2024.{" "}
+          <span style={{ color: C.green }}>All 3 below zero = universally out of favor. Backtested: +32% more BTC.</span>
+        </div>
+        <div style={{ background: C.card, borderRadius: 8, padding: "12px 8px 4px", border: "1px solid " + C.border }}>
+          <ResponsiveContainer width="100%" height={260}>
+            <ComposedChart data={spreadData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+              <XAxis dataKey="date" tick={{ fill: C.muted, fontSize: 9 }} axisLine={{ stroke: C.border }} tickLine={false} interval={2} />
+              <YAxis tick={{ fill: C.muted, fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={val => (val > 0 ? "+" : "") + val + "%"} />
+              <Tooltip contentStyle={{ background: C.card, border: "1px solid " + C.border, borderRadius: 6 }} labelStyle={{ color: C.text }} formatter={val => [(val > 0 ? "+" : "") + val + "%", ""]} />
+              <ReferenceLine y={0} stroke={C.muted} strokeDasharray="6 3" strokeWidth={1} />
+              <Line type="monotone" dataKey="vsNasdaq" stroke={C.blue} strokeWidth={2} dot={false} name="vs Nasdaq" />
+              <Line type="monotone" dataKey="vsSP" stroke={C.purple} strokeWidth={2} dot={false} name="vs S&P" />
+              <Line type="monotone" dataKey="vsGold" stroke={C.yellow} strokeWidth={2} dot={false} name="vs Gold" />
+            </ComposedChart>
+          </ResponsiveContainer>
+          <div style={{ display: "flex", justifyContent: "center", gap: 14, padding: "6px 0", fontSize: 10, flexWrap: "wrap" }}>
+            <span><span style={{ color: C.blue }}>\u2501\u2501</span> <span style={{ color: C.dim }}>vs Nasdaq ({last.vsNasdaq > 0 ? "+" : ""}{last.vsNasdaq}%)</span></span>
+            <span><span style={{ color: C.purple }}>\u2501\u2501</span> <span style={{ color: C.dim }}>vs S&P ({last.vsSP > 0 ? "+" : ""}{last.vsSP}%)</span></span>
+            <span><span style={{ color: C.yellow }}>\u2501\u2501</span> <span style={{ color: C.dim }}>vs Gold ({last.vsGold > 0 ? "+" : ""}{last.vsGold}%)</span></span>
+          </div>
+        </div>
+      </div>
+
+      {/* CHART 3: Realized losses */}
+      <div style={{ marginBottom: 28 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 4 }}>\u2462 Are holders selling at a loss?</div>
+        <div style={{ fontSize: 11, color: C.dim, marginBottom: 12, lineHeight: 1.6 }}>
+          When BTC holders move coins on-chain at prices below what they paid, that's a realized loss — they're capitulating.
+          This index tracks the <em>volume</em> of those loss-taking transactions relative to the cycle peak, scaled 0-100.{" "}
+          <span style={{ color: C.green }}>Higher = more pain = better time to buy. Yellow dashed line is the 6-month rolling average — when red spikes above it, capitulation is elevated vs recent norm.</span>
+        </div>
+        <div style={{ fontSize: 10, marginBottom: 14, lineHeight: 1.5, padding: "10px 12px", background: "rgba(255,255,255,0.03)", borderRadius: 6, border: "1px solid " + C.border }}>
+          <div style={{ color: C.text, fontWeight: 600, marginBottom: 8, fontSize: 11 }}>Reading the gap between red and yellow:</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <div style={{ display: "flex", gap: 8 }}>
+              <span style={{ color: C.red, minWidth: 120, fontWeight: 600 }}>Red spikes above</span>
+              <span style={{ color: C.dim }}>Acute panic. Sudden wave of loss-taking — fresh shock, holders rushing for exits.</span>
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <span style={{ color: C.yellow, minWidth: 120, fontWeight: 600 }}>Gap closing high</span>
+              <span style={{ color: C.dim }}>Sustained bleed. Pain became the new normal. Weak hands grinding out month after month. \u2190 we're here</span>
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <span style={{ color: C.muted, minWidth: 120, fontWeight: 600 }}>Both low & flat</span>
+              <span style={{ color: C.dim }}>Complacency. Nobody's in pain — market is vulnerable. (Oct 25: both ~3, then Nov exploded to 45.)</span>
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <span style={{ color: C.green, minWidth: 120, fontWeight: 600 }}>Both declining</span>
+              <span style={{ color: C.dim }}>Exhaustion. Selling is drying up from high levels — where bottoms tend to form.</span>
+            </div>
+          </div>
+        </div>
+        <div style={{ background: C.card, borderRadius: 8, padding: "12px 8px 4px", border: "1px solid " + C.border }}>
+          <ResponsiveContainer width="100%" height={280}>
+            <ComposedChart data={capWithAvg} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+              <defs>
+                <linearGradient id="lossGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={C.red} stopOpacity={0.35} />
+                  <stop offset="95%" stopColor={C.red} stopOpacity={0.02} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+              <XAxis dataKey="date" tick={{ fill: C.muted, fontSize: 9 }} axisLine={{ stroke: C.border }} tickLine={false} interval={2} />
+              <YAxis domain={[0, 100]} tick={{ fill: C.muted, fontSize: 10 }} axisLine={false} tickLine={false} ticks={[0, 25, 50, 75, 100]} />
+              <Tooltip contentStyle={{ background: C.card, border: "1px solid " + C.border, borderRadius: 6 }} labelStyle={{ color: C.text }} formatter={(val, name) => [val + "/100", name === "avg" ? "6-mo avg" : "Loss intensity"]} />
+              <Area type="monotone" dataKey="intensity" stroke={C.red} strokeWidth={2.5} fill="url(#lossGrad)" dot={false} name="intensity" />
+              <Line type="monotone" dataKey="avg" stroke={C.yellow} strokeWidth={1.5} strokeDasharray="6 3" dot={false} name="avg" />
+            </ComposedChart>
+          </ResponsiveContainer>
+          <div style={{ display: "flex", justifyContent: "center", gap: 20, padding: "6px 0", fontSize: 10 }}>
+            <span><span style={{ color: C.red }}>\u2501\u2501</span> <span style={{ color: C.dim }}>Loss intensity ({lastP.intensity}/100)</span></span>
+            <span><span style={{ color: C.yellow }}>\u254C\u254C</span> <span style={{ color: C.dim }}>6-mo rolling avg ({capWithAvg[capWithAvg.length - 1].avg})</span></span>
+          </div>
+        </div>
+      </div>
+
+      {/* CHART 4: Leverage */}
+      <div style={{ marginBottom: 28 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 4 }}>
+          \u2463 How is the market positioned? <span style={{ fontSize: 10, color: C.muted, fontWeight: 400 }}>(context only — not scored)</span>
+        </div>
+        <div style={{ fontSize: 11, color: C.dim, marginBottom: 12, lineHeight: 1.6 }}>
+          Open interest in BTC futures — how much money is betting long vs short.{" "}
+          <span style={{ color: C.red }}>Red (longs) = traders betting on up.</span>{" "}
+          <span style={{ color: C.green }}>Green (shorts) = traders betting on down. When green exceeds red, the market is positioned for a drop — and that's contrarian-bullish.</span>
+        </div>
+        <div style={{ background: C.card, borderRadius: 8, padding: "12px 8px 4px", border: "1px solid " + C.border }}>
+          <ResponsiveContainer width="100%" height={280}>
+            <ComposedChart data={leverageData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+              <XAxis dataKey="date" tick={{ fill: C.muted, fontSize: 9 }} axisLine={{ stroke: C.border }} tickLine={false} interval={2} />
+              <YAxis tick={{ fill: C.muted, fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={val => "$" + val + "B"} />
+              <Tooltip contentStyle={{ background: C.card, border: "1px solid " + C.border, borderRadius: 6, color: C.text }} labelStyle={{ color: C.text }} formatter={(val, name) => ["$" + val + "B", name]} />
+              <Line type="monotone" dataKey="longOI" stroke={C.red} strokeWidth={2.5} dot={false} name="Longs" />
+              <Line type="monotone" dataKey="shortOI" stroke={C.green} strokeWidth={2.5} dot={false} name="Shorts" />
+            </ComposedChart>
+          </ResponsiveContainer>
+          <div style={{ display: "flex", justifyContent: "center", gap: 14, padding: "6px 0", fontSize: 10 }}>
+            <span><span style={{ color: C.red }}>\u2501\u2501</span> <span style={{ color: C.dim }}>Longs (${lastLev.longOI}B)</span></span>
+            <span><span style={{ color: C.green }}>\u2501\u2501</span> <span style={{ color: C.dim }}>Shorts (${lastLev.shortOI}B)</span></span>
+          </div>
+        </div>
+        <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+          <div style={{ background: C.greenBg, borderRadius: 6, padding: "10px 12px", border: "1px solid " + C.green + "33" }}>
+            <div style={{ fontSize: 10, color: C.muted, marginBottom: 4 }}>Crossover</div>
+            <div style={{ fontSize: 18, fontFamily: "monospace", fontWeight: 700, color: C.green }}>\u2713 YES</div>
+            <div style={{ fontSize: 10, color: C.green, marginBottom: 6 }}>Shorts exceeded longs Dec 25</div>
+            <div style={{ fontSize: 9, color: C.dim, lineHeight: 1.5 }}>More traders betting on a drop than a rise. Contrarian-bullish: when everyone's positioned short, any up-move forces them to buy back, accelerating the rally.</div>
+          </div>
+          <div style={{ background: C.greenBg, borderRadius: 6, padding: "10px 12px", border: "1px solid " + C.green + "33" }}>
+            <div style={{ fontSize: 10, color: C.muted, marginBottom: 4 }}>Gap</div>
+            <div style={{ fontSize: 18, fontFamily: "monospace", fontWeight: 700, color: C.green }}>+${gap}B</div>
+            <div style={{ fontSize: 10, color: C.green, marginBottom: 6 }}>Squeeze fuel building</div>
+            <div style={{ fontSize: 9, color: C.dim, lineHeight: 1.5 }}>${gap}B more in short positions than longs. If price pops, all of that needs to cover — creating forced buying pressure that feeds on itself.</div>
+          </div>
+          <div style={{ background: C.greenBg, borderRadius: 6, padding: "10px 12px", border: "1px solid " + C.green + "33" }}>
+            <div style={{ fontSize: 10, color: C.muted, marginBottom: 4 }}>Fear & Greed</div>
+            <div style={{ fontSize: 18, fontFamily: "monospace", fontWeight: 700, color: C.green }}>5</div>
+            <div style={{ fontSize: 10, color: C.green, marginBottom: 6 }}>Historic low</div>
+            <div style={{ fontSize: 9, color: C.dim, lineHeight: 1.5 }}>Crypto sentiment index (0-100). A 5 means almost nobody wants to touch BTC. Extreme fear historically marks better entries than extreme greed.</div>
+          </div>
+        </div>
+      </div>
+
+      {/* BOTTOM LINE */}
+      <div style={{ background: C.card, border: "1px solid " + scoreColor + "33", borderRadius: 8, padding: "16px 18px", marginBottom: 20 }}>
+        <div style={{ fontSize: 11, color: C.muted, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", marginBottom: 10 }}>
+          How to use your score
+        </div>
+        <div style={{ fontSize: 14, color: C.text, lineHeight: 1.7, marginBottom: 12 }}>
+          Your score is <strong style={{ color: scoreColor, fontSize: 20, fontFamily: "monospace" }}>{v.score}</strong>.{" "}
+          The score is your allocation dial — treat it as a percentage of your maximum monthly DCA.
+          If your max comfortable buy is $3,000/month, today says deploy{" "}
+          <strong style={{ color: scoreColor }}>${Math.round(3000 * v.score / 100).toLocaleString()}</strong>.
+        </div>
+        <div style={{ padding: "12px 14px", background: C.bg, borderRadius: 6, border: "1px solid " + C.border, marginBottom: 12 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 8 }}>Score = weighted average of three signals</div>
+          <div style={{ display: "grid", gridTemplateColumns: "auto auto 1fr auto", gap: "6px 10px", fontSize: 12, alignItems: "center" }}>
+            <span style={{ color: C.dim }}>40%</span><span style={{ color: C.text }}>\u00d7</span>
+            <span style={{ color: C.text }}>\u2460 Trend position</span>
+            <ScoreColor val={v.s1} />
+            <span style={{ color: C.dim }}>35%</span><span style={{ color: C.text }}>\u00d7</span>
+            <span style={{ color: C.text }}>\u2461 Relative performance</span>
+            <ScoreColor val={v.s2} />
+            <span style={{ color: C.dim }}>25%</span><span style={{ color: C.text }}>\u00d7</span>
+            <span style={{ color: C.text }}>\u2462 Capitulation intensity</span>
+            <ScoreColor val={v.s3} />
+            <span style={{ color: C.dim, gridColumn: "1 / 4", borderTop: "1px solid " + C.border, paddingTop: 6 }}>=</span>
+            <span style={{ fontFamily: "monospace", fontWeight: 700, fontSize: 16, color: scoreColor, borderTop: "1px solid " + C.border, paddingTop: 6 }}>{v.score}</span>
+          </div>
+        </div>
+        <div style={{ fontSize: 11, color: C.dim, lineHeight: 1.6 }}>
+          <strong style={{ color: C.text }}>Data: verified monthly averages</strong> (StatMuse, officialdata.org). Weights based on backtest strength: \u2460 +27% more BTC, \u2461 +32% more BTC, \u2462 +5-15% per cycle.
+          {shortsGtLongs ? " Context: shorts currently exceed longs (\u2463) — squeeze fuel, but only 3 months of data." : ""}
+        </div>
+      </div>
+
+      {/* FOOTER */}
+      <div style={{ fontSize: 10, color: C.muted, display: "flex", justifyContent: "space-between" }}>
+        <span>Sources: StatMuse \u00b7 CoinMarketCap \u00b7 officialdata.org \u00b7 Glassnode \u00b7 CoinGlass</span>
+        <span>ATH: $126,198 \u00b7 50wMA: $98K \u00b7 YTD: -27%</span>
+      </div>
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<Dashboard />);
+  </script>
+</body>
+</html>
