@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Datawise</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  background:#060605;color:#ede9e0;
+  font-family:'DM Sans',sans-serif;
+  -webkit-font-smoothing:antialiased;
+  overflow:hidden;height:100vh;width:100vw;
+}
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:10;
+  padding:28px 44px;
+  display:flex;justify-content:space-between;align-items:center;
+}
+nav .logo{
+  font-size:12px;font-weight:400;letter-spacing:5px;
+  text-transform:uppercase;color:#ede9e0;opacity:.7;
+}
+nav .email{
+  font-size:10px;color:#5a5550;letter-spacing:1px;font-weight:300;
+}
+canvas{
+  position:absolute;top:0;right:0;
+  width:55%;height:100%;pointer-events:none;
+}
+.grid{
+  position:absolute;inset:0;
+  background-image:
+    linear-gradient(rgba(201,169,110,.02) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(201,169,110,.02) 1px,transparent 1px);
+  background-size:80px 80px;pointer-events:none;
+}
+.vignette{
+  position:absolute;inset:0;
+  background:radial-gradient(ellipse at 65% 50%,transparent 30%,#060605 85%);
+  pointer-events:none;
+}
+.content{
+  position:relative;z-index:2;
+  padding:0 0 0 60px;
+  display:flex;flex-direction:column;
+  justify-content:center;height:100vh;max-width:520px;
+}
+.headline-top{
+  font-family:'DM Sans',sans-serif;
+  font-size:clamp(14px,1.8vw,20px);font-weight:400;
+  letter-spacing:clamp(4px,0.6vw,8px);
+  text-transform:uppercase;color:#ede9e0;opacity:.75;
+  margin-bottom:8px;
+}
+.headline-bottom{
+  font-family:'EB Garamond',Georgia,serif;
+  font-size:clamp(28px,3.8vw,52px);font-weight:400;
+  letter-spacing:clamp(2px,0.4vw,5px);
+  text-transform:uppercase;color:#c9a96e;
+  line-height:1.2;margin-bottom:48px;
+}
+.subline{
+  font-size:clamp(11px,1.1vw,14px);color:#6a655e;
+  font-weight:300;line-height:1.7;letter-spacing:.5px;
+}
+.cta{
+  position:fixed;bottom:32px;right:44px;z-index:10;
+  font-size:11px;color:#6a655e;letter-spacing:1.5px;font-weight:300;
+  cursor:pointer;transition:color .4s;
+  display:flex;align-items:center;gap:8px;
+  text-decoration:none;
+}
+.cta:hover{color:#c9a96e}
+.cta .arrow{font-size:14px;transition:transform .3s}
+.cta:hover .arrow{transform:translateX(4px)}
+.since{
+  position:fixed;bottom:32px;left:44px;z-index:10;
+  font-size:9px;letter-spacing:3px;text-transform:uppercase;color:#3a3632;
+}
+.scroll-line{
+  position:fixed;bottom:0;left:50%;
+  width:1px;height:48px;
+  background:linear-gradient(to bottom,transparent,rgba(201,169,110,.15));
+  z-index:10;animation:pulse 2.5s ease infinite;
+}
+@keyframes pulse{
+  0%,100%{opacity:.2;height:48px}
+  50%{opacity:.6;height:60px}
+}
+/* fade in */
+.content,.cta,.since,.scroll-line{opacity:0;animation:fadeUp 1.2s ease forwards}
+.headline-bottom{animation-delay:.15s}
+.subline{animation-delay:.3s}
+.cta{animation-delay:.5s}
+.since{animation-delay:.6s}
+.scroll-line{animation-delay:.8s}
+@keyframes fadeUp{
+  from{opacity:0;transform:translateY(12px)}
+  to{opacity:1;transform:translateY(0)}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <span class="logo">Datawise</span>
+  <span class="email">hello@datawise.ai</span>
+</nav>
+
+<div class="grid"></div>
+<canvas id="viz"></canvas>
+<div class="vignette"></div>
+
+<div class="content">
+  <div class="headline-top">Engineering for</div>
+  <div class="headline-bottom">what comes next</div>
+  <div class="subline">Embedded engineering, powered by proprietary AI.</div>
+</div>
+
+<a class="cta" href="#">Start a conversation <span class="arrow">&#8594;</span></a>
+<div class="since">Since 2006</div>
+<div class="scroll-line"></div>
+
+<script>
+const C = document.getElementById('viz');
+const X = C.getContext('2d');
+let W, H;
+
+function resize() {
+  const r = C.getBoundingClientRect();
+  C.width = r.width * devicePixelRatio;
+  C.height = r.height * devicePixelRatio;
+  X.scale(devicePixelRatio, devicePixelRatio);
+  W = r.width; H = r.height;
+}
+window.addEventListener('resize', resize);
+resize();
+
+function scurve(t) { return 1 / (1 + Math.exp(-12 * (t - 0.45))); }
+
+// Curve particles
+const pts = [];
+for (let i = 0; i < 50; i++) {
+  pts.push({
+    t: Math.random(),
+    sp: .0003 + Math.random() * .0005,
+    off: (Math.random() - .5) * 50,
+    sz: Math.random() * 2 + .5,
+    a: Math.random() * .35 + .1,
+    c: Math.floor(Math.random() * 4)
+  });
+}
+
+// Ambient dots
+const amb = [];
+for (let i = 0; i < 30; i++) {
+  amb.push({
+    x: Math.random() * 1000,
+    y: Math.random() * 1000,
+    vx: (Math.random() - .5) * .15,
+    vy: (Math.random() - .5) * .15,
+    sz: Math.random() * 1.5 + .3,
+    a: Math.random() * .12 + .03
+  });
+}
+
+function curveY(t, idx) {
+  const base = scurve(t);
+  const spread = [0, -0.08, 0.08, -0.16, 0.16];
+  return (1 - base - (spread[idx] || 0)) * H * .7 + H * .15;
+}
+
+function draw(now) {
+  X.clearRect(0, 0, W, H);
+
+  // Glow center
+  const grd = X.createRadialGradient(W * .45, H * .42, 0, W * .45, H * .42, W * .5);
+  grd.addColorStop(0, 'rgba(201,169,110,.06)');
+  grd.addColorStop(.5, 'rgba(201,169,110,.015)');
+  grd.addColorStop(1, 'transparent');
+  X.fillStyle = grd;
+  X.fillRect(0, 0, W, H);
+
+  // Draw curves
+  for (let c = 0; c < 4; c++) {
+    X.beginPath();
+    X.strokeStyle = `rgba(201,169,110,${.04 + c * .008})`;
+    X.lineWidth = .6;
+    for (let t = 0; t <= 1; t += .005) {
+      const xp = t * W;
+      const yp = curveY(t, c);
+      t === 0 ? X.moveTo(xp, yp) : X.lineTo(xp, yp);
+    }
+    X.stroke();
+  }
+
+  // Curve particles
+  for (const p of pts) {
+    p.t += p.sp;
+    if (p.t > 1) p.t = 0;
+    const xp = p.t * W;
+    const yp = curveY(p.t, p.c) + p.off;
+    X.beginPath();
+    X.arc(xp, yp, p.sz, 0, Math.PI * 2);
+    X.fillStyle = `rgba(201,169,110,${p.a})`;
+    X.fill();
+  }
+
+  // Ambient
+  for (const a of amb) {
+    a.x += a.vx; a.y += a.vy;
+    if (a.x < 0 || a.x > W) a.vx *= -1;
+    if (a.y < 0 || a.y > H) a.vy *= -1;
+    X.beginPath();
+    X.arc(a.x, a.y, a.sz, 0, Math.PI * 2);
+    X.fillStyle = `rgba(201,169,110,${a.a})`;
+    X.fill();
+  }
+
+  // Light burst at inflection
+  const bx = .45 * W, by = curveY(.45, 0);
+  const pulse = .5 + .5 * Math.sin(now / 2000);
+  const bg = X.createRadialGradient(bx, by, 0, bx, by, 80 + pulse * 30);
+  bg.addColorStop(0, `rgba(201,169,110,${.08 + pulse * .04})`);
+  bg.addColorStop(.5, `rgba(201,169,110,${.02 + pulse * .01})`);
+  bg.addColorStop(1, 'transparent');
+  X.fillStyle = bg;
+  X.fillRect(bx - 120, by - 120, 240, 240);
+
+  requestAnimationFrame(draw);
+}
+requestAnimationFrame(draw);
+</script>
+</body>
+</html>

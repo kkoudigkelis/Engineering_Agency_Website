@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Datawise — The Engine</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Sans:wght@300;400;500;600&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#060605;color:#ede9e0;font-family:'DM Sans',sans-serif;-webkit-font-smoothing:antialiased;overflow:hidden;height:100vh;width:100vw}
+.wrap{position:relative;z-index:2;height:100vh;overflow-y:auto;scroll-snap-type:y mandatory;scrollbar-width:none}
+.wrap::-webkit-scrollbar{display:none}
+section{height:100vh;scroll-snap-align:start;position:relative;overflow:hidden;display:flex}
+nav{position:fixed;top:0;left:0;right:0;z-index:10;padding:28px 44px;display:flex;justify-content:space-between;align-items:center}
+nav .logo{font-size:12px;font-weight:400;letter-spacing:5px;text-transform:uppercase;color:#ede9e0;opacity:.7}
+.dots{position:fixed;right:28px;top:50%;transform:translateY(-50%);z-index:10;display:flex;flex-direction:column;gap:10px}
+.dot{width:6px;height:6px;border-radius:50%;background:rgba(201,169,110,.1);transition:all .4s;cursor:pointer}
+.dot.active{background:rgba(201,169,110,.5);box-shadow:0 0 8px rgba(201,169,110,.2)}
+@keyframes fu{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+.lbl{font-size:10px;font-weight:300;letter-spacing:5px;text-transform:uppercase;color:#c9a96e;display:flex;align-items:center;gap:14px}
+.lbl::before{content:'';width:28px;height:1px;background:#c9a96e}
+.scroll-line{position:fixed;bottom:0;left:50%;width:1px;height:48px;background:linear-gradient(to bottom,transparent,rgba(201,169,110,.15));z-index:10;animation:pulse 2.5s ease infinite}
+@keyframes pulse{0%,100%{opacity:.2}50%{opacity:.6}}
+
+/* S0: HERO */
+#s0{align-items:center;position:relative}
+#s0 canvas{position:absolute;inset:0;width:100%;height:100%;z-index:0}
+#s0 .dim{position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(108deg,rgba(6,6,5,.96) 0%,rgba(6,6,5,.88) 28%,rgba(6,6,5,.45) 52%,rgba(6,6,5,.08) 78%,transparent 100%)}
+#s0 .content{position:relative;z-index:3;padding:0 0 0 clamp(48px,6vw,100px);max-width:560px}
+#s0 .lbl{margin-bottom:44px;opacity:0;animation:fu .8s ease .4s forwards}
+#s0 h1{font-family:'EB Garamond',Georgia,serif;font-size:clamp(34px,4.5vw,64px);font-weight:400;color:#ede9e0;line-height:1.12;letter-spacing:.3px;margin-bottom:28px;opacity:0;animation:fu 1s ease .7s forwards}
+#s0 h1 em{font-style:normal;color:#c9a96e}
+#s0 .sub{font-size:13px;font-weight:300;color:#7a756e;line-height:1.85;opacity:0;animation:fu 1s ease 1s forwards;max-width:460px}
+#s0 .sub strong{color:#c9a96e;font-weight:400}
+#s0 .why{margin-top:36px;font-size:12px;font-weight:300;color:#5a5550;line-height:1.8;max-width:420px;opacity:0;animation:fu 1s ease 1.25s forwards}
+#s0 .neg{margin-top:24px;font-size:11px;font-weight:300;color:#3a3632;letter-spacing:.3px;opacity:0;animation:fu 1s ease 1.5s forwards}
+
+/* PLATFORM SLIDES */
+.ps{height:100vh;display:grid;grid-template-columns:1fr 1fr}
+.ps-left{display:flex;flex-direction:column;justify-content:center;padding:0 40px 0 clamp(48px,6vw,100px)}
+.ps-right{position:relative;overflow:hidden;border-left:1px solid rgba(201,169,110,.04)}
+.ps-right canvas{position:absolute;inset:0;width:100%;height:100%}
+.ps-left .lbl{margin-bottom:20px}
+.ps-left h2{font-family:'EB Garamond',Georgia,serif;font-size:clamp(24px,2.4vw,38px);font-weight:400;color:#ede9e0;line-height:1.18;margin-bottom:8px}
+.ps-left .hook{font-family:'EB Garamond',Georgia,serif;font-size:clamp(14px,1.2vw,18px);font-style:italic;color:#c9a96e;margin-bottom:24px;letter-spacing:.3px}
+.ps-left .value{font-size:12px;font-weight:300;color:#6a655e;line-height:1.7;margin-bottom:28px;max-width:360px}
+.step{display:flex;align-items:center;gap:14px;margin-bottom:14px}
+.step-n{width:22px;height:22px;border-radius:50%;border:1px solid rgba(201,169,110,.18);display:flex;align-items:center;justify-content:center;font-size:9px;color:#c9a96e;font-weight:400;flex-shrink:0}
+.step-body{font-size:11.5px;color:#ede9e0;letter-spacing:.2px}
+.step-body span{font-weight:300;color:#5a5550}
+.ps-left .neg{font-size:10.5px;font-weight:300;color:#3a3632;margin-top:24px;letter-spacing:.3px}
+
+/* CLOSE */
+#s3{align-items:center;justify-content:center;text-align:center;flex-direction:column}
+#s3 .lbl{justify-content:center;margin-bottom:32px}
+#s3 .lbl::before{display:none}
+#s3 h2{font-family:'EB Garamond',Georgia,serif;font-size:clamp(24px,2.8vw,42px);font-weight:400;color:#ede9e0;line-height:1.35;max-width:600px;margin-bottom:20px}
+#s3 h2 em{font-style:normal;color:#c9a96e}
+#s3 .sub{font-size:12px;font-weight:300;color:#5a5550;max-width:400px;line-height:1.7}
+.cta-btn{margin-top:40px;display:inline-flex;align-items:center;gap:10px;font-size:11px;font-weight:400;letter-spacing:2px;text-transform:uppercase;color:#c9a96e;border:1px solid rgba(201,169,110,.25);padding:14px 32px;text-decoration:none;transition:all .4s}
+.cta-btn:hover{border-color:rgba(201,169,110,.5);background:rgba(201,169,110,.04)}
+</style>
+</head>
+<body>
+<nav><span class="logo">Datawise</span></nav>
+<div class="dots" id="dots"></div>
+<div class="wrap" id="sw">
+
+  <section id="s0">
+    <canvas id="heroC"></canvas>
+    <div class="dim"></div>
+    <div class="content">
+      <div class="lbl">Proprietary Infrastructure</div>
+      <h1>The engine behind <em>everything we deliver.</em></h1>
+      <div class="sub">Two platforms — built from scratch. One deploys <strong>autonomous AI agents</strong> across your operation. The other turns <strong>your content into a living intelligence layer</strong>.</div>
+      <div class="why">Every company is racing to operationalize AI. Most are stitching together fragmented tools that don't talk to each other. We've already solved that — and it's built into every engagement.</div>
+      <div class="neg">Not assembled. Not configured. Engineered.</div>
+    </div>
+  </section>
+
+  <section id="s1" class="ps">
+    <div class="ps-left">
+      <div class="lbl">Platform I — Orchestration</div>
+      <h2>AI Agent Automation.</h2>
+      <div class="hook">Deploy an AI workforce in days. Not months.</div>
+      <div class="value">Most agent frameworks require engineers to implement. Ours is no-code, model-agnostic, and runs across every channel — voice, chat, email, API — in one system.</div>
+      <div class="step"><div class="step-n">1</div><div class="step-body">Design <span>— drag-and-drop goals + guardrails</span></div></div>
+      <div class="step"><div class="step-n">2</div><div class="step-body">Deploy <span>— connects to CRM, ERP, Slack, any API</span></div></div>
+      <div class="step"><div class="step-n">3</div><div class="step-body">Execute <span>— agents plan, delegate, act as teams</span></div></div>
+      <div class="step"><div class="step-n">4</div><div class="step-body">Optimize <span>— self-corrects. learns. improves.</span></div></div>
+      <div class="neg">Not chatbots. Not scripts. Coordinated digital workers.</div>
+    </div>
+    <div class="ps-right"><canvas id="cA"></canvas></div>
+  </section>
+
+  <section id="s2" class="ps">
+    <div class="ps-left">
+      <div class="lbl">Platform II — Knowledge</div>
+      <h2>Your Content.<br>Activated.</h2>
+      <div class="hook">Six connected products. One intelligent ecosystem.</div>
+      <div class="value">Not a file share. A complete platform to manage, enrich, and deliver your organization's knowledge — with AI search, interactive guides, digital stories, and smart workflows built in.</div>
+      <div class="step"><div class="step-n">1</div><div class="step-body">Ingest <span>— docs, images, video, data. Any format.</span></div></div>
+      <div class="step"><div class="step-n">2</div><div class="step-body">Enrich <span>— auto-tagging, linking, metadata</span></div></div>
+      <div class="step"><div class="step-n">3</div><div class="step-body">Search <span>— ask in natural language. get cited answers.</span></div></div>
+      <div class="step"><div class="step-n">4</div><div class="step-body">Deliver <span>— guides, stories, surveys, e-signatures</span></div></div>
+      <div class="neg">Not another repository. A digital experience engine.</div>
+    </div>
+    <div class="ps-right"><canvas id="cB"></canvas></div>
+  </section>
+
+  <section id="s3">
+    <div class="lbl">The Result</div>
+    <h2>Every team we embed comes with infrastructure <em>most companies spend years trying to build.</em></h2>
+    <div class="sub">While others configure off-the-shelf tools, we deploy proprietary systems refined across 60+ engineers and 17 years of production delivery.</div>
+    <a class="cta-btn" href="#">Start a conversation →</a>
+  </section>
+
+</div>
+<div class="scroll-line"></div>
+
+<script>
+const dpr=Math.min(devicePixelRatio,2);
+const sw=document.getElementById('sw'),dotsEl=document.getElementById('dots');
+for(let i=0;i<4;i++){const d=document.createElement('div');d.className='dot'+(i===0?' active':'');d.onclick=()=>sw.scrollTo({top:i*innerHeight,behavior:'smooth'});dotsEl.appendChild(d)}
+const allDots=dotsEl.querySelectorAll('.dot');
+sw.addEventListener('scroll',()=>{const idx=Math.round(sw.scrollTop/innerHeight);allDots.forEach((d,i)=>d.classList.toggle('active',i===idx))});
+
+/* ================================================================
+   HERO — TWIN-CORE NEURAL REACTOR
+   Two massive interconnected neural clusters (representing the two
+   platforms). Left cluster = orchestration (tight, geometric,
+   hexagonal nodes). Right cluster = knowledge (organic, layered,
+   constellation-like). A blazing bridge connects them. Particle
+   streams feed both. The combined system pulses as one unified
+   engine. Shockwaves emanate periodically.
+   ================================================================ */
+const hC=document.getElementById('heroC'),hx=hC.getContext('2d');
+let W,H;
+function rH(){W=innerWidth;H=innerHeight;hC.width=W*dpr;hC.height=H*dpr;hx.setTransform(dpr,0,0,dpr,0,0)}
+addEventListener('resize',rH);rH();
+
+/* Left cluster (orchestration) — tight hex grid */
+const CL={x:()=>W*.56,y:()=>H*.4};
+const nodesL=[];
+for(let i=0;i<50;i++){const a=Math.random()*Math.PI*2,d=15+Math.random()*110;nodesL.push({ox:Math.cos(a)*d,oy:Math.sin(a)*d,sz:1+Math.random()*2.5,ba:.05+Math.random()*.2,pulse:Math.random()*6.28,ps:.004+Math.random()*.01,lit:0,type:'hex'})}
+/* Right cluster (knowledge) — organic spread */
+const CR={x:()=>W*.78,y:()=>H*.58};
+const nodesR=[];
+for(let i=0;i<45;i++){const a=Math.random()*Math.PI*2,d=15+Math.random()*120;nodesR.push({ox:Math.cos(a)*d*(0.7+Math.random()*.6),oy:Math.sin(a)*d*(0.5+Math.random()*.5),sz:.8+Math.random()*2,ba:.04+Math.random()*.18,pulse:Math.random()*6.28,ps:.003+Math.random()*.008,lit:0,type:['sq','ci','di'][Math.floor(Math.random()*3)]})}
+/* Edges within each cluster */
+function buildEdges(nodes,thresh){const e=[];for(let i=0;i<nodes.length;i++)for(let j=i+1;j<nodes.length;j++){const dx=nodes[i].ox-nodes[j].ox,dy=nodes[i].oy-nodes[j].oy;if(Math.sqrt(dx*dx+dy*dy)<thresh&&Math.random()>.4)e.push({a:i,b:j})}return e}
+const edgesL=buildEdges(nodesL,55),edgesR=buildEdges(nodesR,60);
+/* Cross-bridge edges */
+const bridgeE=[];for(let i=0;i<6;i++){bridgeE.push({l:Math.floor(Math.random()*nodesL.length),r:Math.floor(Math.random()*nodesR.length)})}
+/* Impulses */
+const impL=[],impR=[],impB=[];
+function fireImp(nodes,edges,arr){if(!edges.length)return;const s=Math.floor(Math.random()*nodes.length);let c=s;const v=new Set([c]),p=[c];for(let i=0;i<3+Math.floor(Math.random()*6);i++){const nb=edges.filter(e=>(e.a===c||e.b===c)&&!v.has(e.a===c?e.b:e.a));if(!nb.length)break;const n=nb[Math.floor(Math.random()*nb.length)];c=n.a===c?n.b:n.a;v.add(c);p.push(c)}if(p.length>2)arr.push({path:p,step:0,prog:0,spd:.035+Math.random()*.05,br:.4+Math.random()*.5})}
+/* Particles feeding in */
+const SP=[];const MAX_SP=250;
+function spawnSP(){if(SP.length>=MAX_SP)return;const a=Math.random()*Math.PI*2,d=350+Math.random()*200,mx=(CL.x()+CR.x())/2,my=(CL.y()+CR.y())/2;SP.push({x:mx+Math.cos(a)*d,y:my+Math.sin(a)*d,target:Math.random()<.5?0:1,spd:.8+Math.random()*2.5,sz:.3+Math.random()*1.5,br:.05+Math.random()*.2,life:0,maxLife:80+Math.random()*120})}
+const shocks=[];
+let t=0;
+
+function drawH(){
+  t++;hx.clearRect(0,0,W,H);
+  const clx=CL.x(),cly=CL.y(),crx=CR.x(),cry=CR.y();
+  for(let i=0;i<2;i++)spawnSP();
+  if(Math.random()<.12)fireImp(nodesL,edgesL,impL);
+  if(Math.random()<.1)fireImp(nodesR,edgesR,impR);
+  if(Math.random()<.04)impB.push({prog:0,spd:.01+Math.random()*.02,br:.3+Math.random()*.4,dir:Math.random()<.5?1:-1});
+  if(t%90===0)shocks.push({x:(clx+crx)/2,y:(cly+cry)/2,r:0,maxR:250+Math.random()*200,spd:.8+Math.random()*.8});
+
+  /* Ambient glow for each core */
+  const gp=.5+.5*Math.sin(t*.004);
+  for(const[cx,cy,r] of[[clx,cly,180],[crx,cry,160]]){
+    for(const[gr,al] of[[r,.02+gp*.01],[r*.5,.04+gp*.02],[r*.2,.08+gp*.04]]){
+      const g=hx.createRadialGradient(cx,cy,0,cx,cy,gr);g.addColorStop(0,`rgba(201,169,110,${al})`);g.addColorStop(1,'transparent');
+      hx.fillStyle=g;hx.beginPath();hx.arc(cx,cy,gr,0,Math.PI*2);hx.fill();
+    }
+  }
+
+  /* Shockwaves */
+  for(let i=shocks.length-1;i>=0;i--){const s=shocks[i];s.r+=s.spd;const l=s.r/s.maxR;if(l>1){shocks.splice(i,1);continue}hx.beginPath();hx.arc(s.x,s.y,s.r,0,Math.PI*2);hx.strokeStyle=`rgba(201,169,110,${(1-l)*.06})`;hx.lineWidth=2*(1-l);hx.stroke()}
+
+  /* Bridge */
+  const bmx=(clx+crx)/2+(cly-cry)*.2,bmy=(cly+cry)/2+(crx-clx)*.1;
+  hx.beginPath();hx.moveTo(clx,cly);hx.quadraticCurveTo(bmx,bmy,crx,cry);
+  hx.strokeStyle=`rgba(201,169,110,${.03+gp*.02})`;hx.lineWidth=1.5;hx.stroke();
+  /* Bridge cross-edges */
+  for(const be of bridgeE){const ln=nodesL[be.l],rn=nodesR[be.r];hx.beginPath();hx.moveTo(clx+ln.ox,cly+ln.oy);hx.lineTo(crx+rn.ox,cry+rn.oy);hx.strokeStyle='rgba(201,169,110,.012)';hx.lineWidth=.3;hx.stroke()}
+
+  /* Draw cluster helper */
+  function drawCluster(cx,cy,nodes,edges,imps){
+    /* Edges */
+    for(const e of edges){const a=nodes[e.a],b=nodes[e.b],ml=Math.max(a.lit,b.lit);hx.beginPath();hx.moveTo(cx+a.ox,cy+a.oy);hx.lineTo(cx+b.ox,cy+b.oy);hx.strokeStyle=`rgba(201,169,110,${.015+ml*.1})`;hx.lineWidth=.3+ml*1;hx.stroke()}
+    /* Nodes */
+    for(const n of nodes){
+      n.pulse+=n.ps;if(n.lit>0)n.lit-=.012;
+      const nx=cx+n.ox,ny=cy+n.oy;
+      const pa=.5+.5*Math.sin(n.pulse),a=(n.ba+n.lit*.5)*(.5+pa*.5),s=n.sz*(.4+pa*.2)+n.lit*3;
+      if(n.lit>.08){const lg=hx.createRadialGradient(nx,ny,0,nx,ny,s*4);lg.addColorStop(0,`rgba(255,220,150,${n.lit*.25})`);lg.addColorStop(1,'transparent');hx.fillStyle=lg;hx.fillRect(nx-s*4,ny-s*4,s*8,s*8)}
+      if(n.type==='hex'){hx.beginPath();for(let v=0;v<6;v++){const va=v/6*Math.PI*2-Math.PI/2,vr=s*.7;v===0?hx.moveTo(nx+Math.cos(va)*vr,ny+Math.sin(va)*vr):hx.lineTo(nx+Math.cos(va)*vr,ny+Math.sin(va)*vr)}hx.closePath();hx.fillStyle=`rgba(220,190,140,${a})`;hx.fill()}
+      else if(n.type==='ci'){hx.beginPath();hx.arc(nx,ny,s*.5,0,Math.PI*2);hx.fillStyle=`rgba(220,195,150,${a})`;hx.fill()}
+      else if(n.type==='sq'){hx.fillStyle=`rgba(200,180,130,${a})`;hx.fillRect(nx-s*.5,ny-s*.5,s,s)}
+      else{hx.beginPath();hx.moveTo(nx,ny-s*.7);hx.lineTo(nx+s*.5,ny);hx.lineTo(nx,ny+s*.7);hx.lineTo(nx-s*.5,ny);hx.closePath();hx.fillStyle=`rgba(230,200,140,${a})`;hx.fill()}
+    }
+    /* Impulses */
+    for(let i=imps.length-1;i>=0;i--){
+      const im=imps[i];im.prog+=im.spd;if(im.prog>=1){im.step++;im.prog=0;if(im.step>=im.path.length-1){imps.splice(i,1);continue}}
+      if(im.step>=im.path.length-1){imps.splice(i,1);continue}
+      const cn=nodes[im.path[im.step]],nn=nodes[im.path[im.step+1]];
+      cn.lit=Math.min(1,cn.lit+.07);nn.lit=Math.min(1,nn.lit+.04);
+      const ix=cx+cn.ox+(nn.ox-cn.ox)*im.prog,iy=cy+cn.oy+(nn.oy-cn.oy)*im.prog;
+      const ig=hx.createRadialGradient(ix,iy,0,ix,iy,8);ig.addColorStop(0,`rgba(255,230,170,${im.br*.4})`);ig.addColorStop(1,'transparent');
+      hx.fillStyle=ig;hx.fillRect(ix-8,iy-8,16,16);
+      hx.beginPath();hx.arc(ix,iy,2,0,Math.PI*2);hx.fillStyle=`rgba(255,245,220,${im.br*.6})`;hx.fill();
+    }
+  }
+  drawCluster(clx,cly,nodesL,edgesL,impL);
+  drawCluster(crx,cry,nodesR,edgesR,impR);
+
+  /* Bridge impulses */
+  for(let i=impB.length-1;i>=0;i--){const b=impB[i];b.prog+=b.spd;if(b.prog>1){impB.splice(i,1);continue}const pr=b.dir===1?b.prog:1-b.prog,t1=1-pr,bx=t1*t1*clx+2*t1*pr*bmx+pr*pr*crx,by=t1*t1*cly+2*t1*pr*bmy+pr*pr*cry,ba=Math.sin(b.prog*Math.PI)*b.br;const bg=hx.createRadialGradient(bx,by,0,bx,by,12);bg.addColorStop(0,`rgba(255,220,150,${ba*.5})`);bg.addColorStop(1,'transparent');hx.fillStyle=bg;hx.fillRect(bx-12,by-12,24,24);hx.beginPath();hx.arc(bx,by,2,0,Math.PI*2);hx.fillStyle=`rgba(255,240,200,${ba*.7})`;hx.fill()}
+
+  /* Particles */
+  for(let i=SP.length-1;i>=0;i--){const p=SP[i];p.life++;if(p.life>p.maxLife){SP.splice(i,1);continue}const tx=p.target===0?clx:crx,ty=p.target===0?cly:cry,dx=tx-p.x,dy=ty-p.y,d=Math.sqrt(dx*dx+dy*dy);if(d<25){SP.splice(i,1);continue}const pull=d>200?.4:d>80?1.2:3;p.x+=(dx/d)*p.spd*pull;p.y+=(dy/d)*p.spd*pull;const perp=Math.atan2(dy,dx)+Math.PI/2;p.x+=Math.cos(perp)*.35*p.spd*(d/400);p.y+=Math.sin(perp)*.35*p.spd*(d/400);const a=p.br*Math.min(1,p.life/12);hx.beginPath();hx.arc(p.x,p.y,p.sz*.3,0,Math.PI*2);hx.fillStyle=`rgba(201,169,110,${a})`;hx.fill()}
+
+  /* Core dots */
+  for(const[cx,cy] of[[clx,cly],[crx,cry]]){const cp=.5+.5*Math.sin(t*.008);hx.beginPath();hx.arc(cx,cy,4+cp*2,0,Math.PI*2);hx.fillStyle=`rgba(230,200,150,${.12+cp*.08})`;hx.fill()}
+
+  requestAnimationFrame(drawH);
+}
+requestAnimationFrame(drawH);
+
+
+/* ================================================================
+   PLATFORM I — ORCHESTRATOR COMMAND CENTER
+   Center: large pulsing ORCHESTRATOR brain.
+   Around it: 5 system endpoints with BOLD VISIBLE LABELS.
+   Agent hexagons orbit the brain, get dispatched to systems via
+   bright visible pathways with animated direction arrows.
+   On arrival: task completes (green flash), agent returns.
+   Continuous flow of dispatches showing real-time coordination.
+   Labels and pathways are CLEAR and READABLE.
+   ================================================================ */
+const cAEl=document.getElementById('cA'),xA=cAEl.getContext('2d');
+let AW,AH;
+function rA(){const r=cAEl.getBoundingClientRect();AW=r.width;AH=r.height;cAEl.width=AW*dpr;cAEl.height=AH*dpr;xA.setTransform(dpr,0,0,dpr,0,0)}
+addEventListener('resize',rA);rA();
+
+const brain={x:.28,y:.5};
+const sys=[
+  {x:.78,y:.12,label:'VOICE',clr:'180,200,160'},
+  {x:.88,y:.32,label:'CRM',clr:'160,180,210'},
+  {x:.85,y:.55,label:'ERP',clr:'210,180,160'},
+  {x:.78,y:.76,label:'EMAIL',clr:'180,170,210'},
+  {x:.65,y:.9,label:'SLACK / API',clr:'200,190,160'}
+];
+
+function bezPath(si,p){const bx=brain.x*AW,by=brain.y*AH,sx=sys[si].x*AW,sy=sys[si].y*AH,mx=(bx+sx)/2+(by-sy)*.18,my=(by+sy)/2+(sx-bx)*.08,t=p,t1=1-t;return{x:t1*t1*bx+2*t1*t*mx+t*t*sx,y:t1*t1*by+2*t1*t*my+t*t*sy}}
+
+const orbAgents=[];
+for(let i=0;i<10;i++)orbAgents.push({ang:i/10*Math.PI*2,r:28+Math.random()*30,spd:.005+Math.random()*.008,sz:2.5+Math.random()*2,pulse:Math.random()*6.28,ps:.01+Math.random()*.02,ba:.25+Math.random()*.4});
+const dispatches=[];const epFlash=[];
+function dispatch(){dispatches.push({si:Math.floor(Math.random()*sys.length),prog:0,spd:.006+Math.random()*.014,ret:false,br:.4+Math.random()*.4,sz:2.5+Math.random()*2})}
+
+function drawA(now){
+  xA.clearRect(0,0,AW,AH);
+  const bx=brain.x*AW,by=brain.y*AH,gp=.5+.5*Math.sin(now/1200);
+
+  /* Brain glow */
+  for(const[r,al] of[[100,.04+gp*.02],[50,.07+gp*.03],[20,.14+gp*.06]]){const g=xA.createRadialGradient(bx,by,0,bx,by,r);g.addColorStop(0,`rgba(201,169,110,${al})`);g.addColorStop(1,'transparent');xA.fillStyle=g;xA.beginPath();xA.arc(bx,by,r,0,Math.PI*2);xA.fill()}
+  /* Brain hexagon */
+  xA.beginPath();for(let v=0;v<6;v++){const va=v/6*Math.PI*2-Math.PI/2,vr=12+gp*3;v===0?xA.moveTo(bx+Math.cos(va)*vr,by+Math.sin(va)*vr):xA.lineTo(bx+Math.cos(va)*vr,by+Math.sin(va)*vr)}xA.closePath();
+  xA.strokeStyle=`rgba(201,169,110,${.15+gp*.1})`;xA.lineWidth=1;xA.stroke();
+  xA.fillStyle=`rgba(220,195,150,${.06+gp*.04})`;xA.fill();
+  /* Brain label */
+  xA.font='500 10px DM Sans';xA.textAlign='center';xA.fillStyle='rgba(201,169,110,.4)';
+  xA.fillText('ORCHESTRATOR',bx,by+26);
+
+  /* Orbit ring */
+  xA.beginPath();xA.arc(bx,by,42,0,Math.PI*2);xA.strokeStyle='rgba(201,169,110,.025)';xA.lineWidth=.4;xA.stroke();
+
+  /* Pathways + system nodes */
+  for(let si=0;si<sys.length;si++){
+    const s=sys[si],sx=s.x*AW,sy=s.y*AH;
+    /* Path (solid, visible) */
+    xA.beginPath();for(let p=0;p<=30;p++){const pt=bezPath(si,p/30);p===0?xA.moveTo(pt.x,pt.y):xA.lineTo(pt.x,pt.y)}
+    xA.strokeStyle='rgba(201,169,110,.06)';xA.lineWidth=1.2;xA.stroke();
+    /* Direction arrows along path */
+    for(let a=0;a<3;a++){const ap=.25+a*.25,apt=bezPath(si,ap),apt2=bezPath(si,Math.min(1,ap+.03));
+      const ang=Math.atan2(apt2.y-apt.y,apt2.x-apt.x);
+      const arrowA=((.5+.5*Math.sin(now/600+a+si))*.15+.03);
+      xA.save();xA.translate(apt.x,apt.y);xA.rotate(ang);
+      xA.beginPath();xA.moveTo(4,0);xA.lineTo(-3,-3);xA.lineTo(-3,3);xA.closePath();
+      xA.fillStyle=`rgba(201,169,110,${arrowA})`;xA.fill();xA.restore()}
+    /* System node */
+    xA.beginPath();xA.arc(sx,sy,10,0,Math.PI*2);xA.strokeStyle=`rgba(${s.clr},.12)`;xA.lineWidth=.8;xA.stroke();
+    xA.beginPath();xA.arc(sx,sy,4,0,Math.PI*2);xA.fillStyle=`rgba(${s.clr},${.1+gp*.06})`;xA.fill();
+    /* System label — BOLD and VISIBLE */
+    xA.font='500 10px DM Sans';xA.textAlign='center';xA.fillStyle=`rgba(${s.clr},.35)`;
+    xA.fillText(s.label,sx,sy+22);
+  }
+
+  /* Orbiting agents */
+  for(const ag of orbAgents){
+    ag.ang+=ag.spd;ag.pulse+=ag.ps;
+    const ax=bx+Math.cos(ag.ang)*ag.r,ay=by+Math.sin(ag.ang)*ag.r;
+    const pa=.5+.5*Math.sin(ag.pulse),a=ag.ba*(.5+pa*.5);
+    const ag2=xA.createRadialGradient(ax,ay,0,ax,ay,ag.sz*3);ag2.addColorStop(0,`rgba(255,220,150,${a*.25})`);ag2.addColorStop(1,'transparent');xA.fillStyle=ag2;xA.fillRect(ax-ag.sz*3,ay-ag.sz*3,ag.sz*6,ag.sz*6);
+    xA.beginPath();for(let v=0;v<6;v++){const va=v/6*Math.PI*2-Math.PI/2,vr=ag.sz*(.5+pa*.25);v===0?xA.moveTo(ax+Math.cos(va)*vr,ay+Math.sin(va)*vr):xA.lineTo(ax+Math.cos(va)*vr,ay+Math.sin(va)*vr)}xA.closePath();
+    xA.fillStyle=`rgba(230,200,150,${a})`;xA.fill();
+  }
+
+  /* Dispatched agents */
+  if(Math.random()<.07)dispatch();
+  for(let i=dispatches.length-1;i>=0;i--){
+    const d=dispatches[i];d.prog+=d.spd;
+    if(!d.ret&&d.prog>=1){d.ret=true;d.prog=1;epFlash.push({si:d.si,life:0});d.spd*=1.4}
+    if(d.ret){d.prog-=d.spd;if(d.prog<=0){dispatches.splice(i,1);continue}}
+    const pt=bezPath(d.si,d.prog),da=d.br*Math.sin((d.ret?1-d.prog:d.prog)*Math.PI);
+    const dg=xA.createRadialGradient(pt.x,pt.y,0,pt.x,pt.y,d.sz*4);
+    dg.addColorStop(0,`rgba(255,220,150,${da*.45})`);dg.addColorStop(.3,`rgba(201,169,110,${da*.12})`);dg.addColorStop(1,'transparent');
+    xA.fillStyle=dg;xA.fillRect(pt.x-d.sz*4,pt.y-d.sz*4,d.sz*8,d.sz*8);
+    /* Agent dot — green on return */
+    xA.beginPath();xA.arc(pt.x,pt.y,d.sz*.7,0,Math.PI*2);
+    xA.fillStyle=d.ret?`rgba(160,210,140,${da*.7})`:`rgba(255,240,200,${da*.6})`;xA.fill();
+  }
+  /* Endpoint flashes */
+  for(let i=epFlash.length-1;i>=0;i--){const f=epFlash[i];f.life+=.025;if(f.life>1){epFlash.splice(i,1);continue}const s=sys[f.si],sx=s.x*AW,sy=s.y*AH,r=6+f.life*22,a=(1-f.life)*.25;const fg=xA.createRadialGradient(sx,sy,0,sx,sy,r);fg.addColorStop(0,`rgba(160,210,140,${a})`);fg.addColorStop(1,'transparent');xA.fillStyle=fg;xA.fillRect(sx-r,sy-r,r*2,r*2)}
+
+  requestAnimationFrame(drawA);
+}
+requestAnimationFrame(drawA);
+
+
+/* ================================================================
+   PLATFORM II — KNOWLEDGE ECOSYSTEM (6 PRODUCTS)
+   Center: large REPOSITORY core (Repox Store).
+   Around it: 5 satellite product nodes in a ring, each labeled:
+   AI, GUIDE, STORIES, SURVEYS, SIGN.
+   Content particles stream in from the left (raw ingest).
+   They get absorbed by the central repository.
+   Then energy flows outward to each product satellite,
+   showing: raw content → stored → enriched → delivered.
+   Periodic "search queries" pulse from the AI node through
+   the repository, lighting up connected content.
+   Each product pulses independently. The ecosystem is ALIVE.
+   ================================================================ */
+const cBEl=document.getElementById('cB'),xB=cBEl.getContext('2d');
+let BW,BH;
+function rB(){const r=cBEl.getBoundingClientRect();BW=r.width;BH=r.height;cBEl.width=BW*dpr;cBEl.height=BH*dpr;xB.setTransform(dpr,0,0,dpr,0,0)}
+addEventListener('resize',rB);rB();
+
+const repo={x:.45,y:.5};
+const products=[
+  {ang:-Math.PI/2,dist:130,label:'AI SEARCH',clr:'200,180,140',icon:'ci'},
+  {ang:-Math.PI/2+Math.PI*2/5,dist:125,label:'GUIDE',clr:'170,200,170',icon:'sq'},
+  {ang:-Math.PI/2+Math.PI*4/5,dist:130,label:'STORIES',clr:'180,170,210',icon:'di'},
+  {ang:-Math.PI/2+Math.PI*6/5,dist:125,label:'SURVEYS',clr:'200,170,160',icon:'ci'},
+  {ang:-Math.PI/2+Math.PI*8/5,dist:130,label:'SIGN',clr:'170,190,200',icon:'sq'}
+];
+
+/* Content stored in repository (small organized dots) */
+const stored=[];
+for(let i=0;i<40;i++){const a=Math.random()*Math.PI*2,d=10+Math.random()*55;stored.push({ox:Math.cos(a)*d,oy:Math.sin(a)*d,sz:.6+Math.random()*1.5,ba:.04+Math.random()*.1,pulse:Math.random()*6.28,ps:.003+Math.random()*.008,shape:Math.floor(Math.random()*3),lit:0})}
+/* Ingest particles */
+const rawP=[];
+function spawnRaw(){rawP.push({x:-.03*BW,y:(.15+Math.random()*.7)*BH,spd:1+Math.random()*2.5,sz:1.5+Math.random()*3,shape:Math.floor(Math.random()*3),br:.15+Math.random()*.3,rot:Math.random()*Math.PI*2})}
+/* Outward flows to products */
+const flows=[];
+function spawnFlow(){const pi=Math.floor(Math.random()*products.length);flows.push({pi,prog:0,spd:.01+Math.random()*.02,br:.3+Math.random()*.4})}
+/* Search queries from AI node */
+const queries=[];
+function spawnQuery(){queries.push({prog:0,spd:.008+Math.random()*.015,br:.4+Math.random()*.4,hitTime:0})}
+
+function drawB(now){
+  xB.clearRect(0,0,BW,BH);
+  const rx=repo.x*BW,ry=repo.y*BH,gp=.5+.5*Math.sin(now/1800);
+
+  /* Repository glow */
+  for(const[r,al] of[[120,.03+gp*.015],[60,.05+gp*.025],[25,.1+gp*.05]]){const g=xB.createRadialGradient(rx,ry,0,rx,ry,r);g.addColorStop(0,`rgba(201,169,110,${al})`);g.addColorStop(1,'transparent');xB.fillStyle=g;xB.beginPath();xB.arc(rx,ry,r,0,Math.PI*2);xB.fill()}
+  /* Repo ring */
+  xB.beginPath();xB.arc(rx,ry,60,0,Math.PI*2);xB.strokeStyle=`rgba(201,169,110,${.04+gp*.02})`;xB.lineWidth=.6;xB.stroke();
+  /* Repo label */
+  xB.font='500 10px DM Sans';xB.textAlign='center';xB.fillStyle='rgba(201,169,110,.35)';
+  xB.fillText('REPOSITORY',rx,ry+6);
+  xB.font='300 8px DM Sans';xB.fillStyle='rgba(201,169,110,.2)';
+  xB.fillText('store · manage · enrich',rx,ry+18);
+
+  /* Stored content nodes */
+  for(const s of stored){
+    s.pulse+=s.ps;if(s.lit>0)s.lit-=.01;
+    const sx=rx+s.ox,sy=ry+s.oy,pa=.5+.5*Math.sin(s.pulse),a=(s.ba+s.lit*.4)*(.5+pa*.5),sz=s.sz*(.4+pa*.2)+s.lit*2;
+    if(s.lit>.05){const lg=xB.createRadialGradient(sx,sy,0,sx,sy,sz*4);lg.addColorStop(0,`rgba(255,220,150,${s.lit*.2})`);lg.addColorStop(1,'transparent');xB.fillStyle=lg;xB.fillRect(sx-sz*4,sy-sz*4,sz*8,sz*8)}
+    if(s.shape===0){xB.fillStyle=`rgba(200,180,130,${a})`;xB.fillRect(sx-sz,sy-sz,sz*2,sz*2)}
+    else if(s.shape===1){xB.beginPath();xB.arc(sx,sy,sz,0,Math.PI*2);xB.fillStyle=`rgba(220,195,150,${a})`;xB.fill()}
+    else{xB.beginPath();xB.moveTo(sx,sy-sz*1.2);xB.lineTo(sx+sz,sy);xB.lineTo(sx,sy+sz*1.2);xB.lineTo(sx-sz,sy);xB.closePath();xB.fillStyle=`rgba(230,200,140,${a})`;xB.fill()}
+  }
+
+  /* Products + connections */
+  for(let pi=0;pi<products.length;pi++){
+    const p=products[pi],px=rx+Math.cos(p.ang)*p.dist,py=ry+Math.sin(p.ang)*p.dist;
+    const pp=.5+.5*Math.sin(now/1000+pi*1.2);
+    /* Connection line */
+    xB.beginPath();xB.moveTo(rx,ry);xB.lineTo(px,py);
+    xB.strokeStyle=`rgba(${p.clr},.06)`;xB.lineWidth=1;xB.stroke();
+    /* Product glow */
+    const pg=xB.createRadialGradient(px,py,0,px,py,28);pg.addColorStop(0,`rgba(${p.clr},${.06+pp*.03})`);pg.addColorStop(1,'transparent');
+    xB.fillStyle=pg;xB.beginPath();xB.arc(px,py,28,0,Math.PI*2);xB.fill();
+    /* Product ring */
+    xB.beginPath();xB.arc(px,py,14,0,Math.PI*2);xB.strokeStyle=`rgba(${p.clr},.12)`;xB.lineWidth=.6;xB.stroke();
+    /* Product icon */
+    if(p.icon==='ci'){xB.beginPath();xB.arc(px,py,4,0,Math.PI*2);xB.fillStyle=`rgba(${p.clr},${.12+pp*.06})`;xB.fill()}
+    else if(p.icon==='sq'){xB.fillStyle=`rgba(${p.clr},${.12+pp*.06})`;xB.fillRect(px-3.5,py-3.5,7,7)}
+    else{xB.beginPath();xB.moveTo(px,py-5);xB.lineTo(px+4,py);xB.lineTo(px,py+5);xB.lineTo(px-4,py);xB.closePath();xB.fillStyle=`rgba(${p.clr},${.12+pp*.06})`;xB.fill()}
+    /* Label — VISIBLE */
+    xB.font='500 9px DM Sans';xB.textAlign='center';xB.fillStyle=`rgba(${p.clr},.35)`;
+    xB.fillText(p.label,px,py+26);
+  }
+
+  /* Ingest particles */
+  if(Math.random()<.05)spawnRaw();
+  for(let i=rawP.length-1;i>=0;i--){
+    const p=rawP[i];p.x+=p.spd;p.rot+=.01;
+    const dx=rx-p.x,dy=ry-p.y,d=Math.sqrt(dx*dx+dy*dy);
+    if(d>40){p.x+=(dx/d)*.3;p.y+=(dy/d)*.15}
+    if(d<20){rawP.splice(i,1);continue}
+    if(p.x>BW*1.1){rawP.splice(i,1);continue}
+    const a=p.br*Math.min(1,p.x/(BW*.1));
+    xB.save();xB.translate(p.x,p.y);xB.rotate(p.rot);
+    if(p.shape===0){xB.fillStyle=`rgba(180,160,120,${a})`;xB.fillRect(-p.sz,-p.sz,p.sz*2,p.sz*2)}
+    else if(p.shape===1){xB.beginPath();xB.arc(0,0,p.sz,0,Math.PI*2);xB.fillStyle=`rgba(200,175,130,${a})`;xB.fill()}
+    else{xB.beginPath();xB.moveTo(0,-p.sz*1.2);xB.lineTo(p.sz,0);xB.lineTo(0,p.sz*1.2);xB.lineTo(-p.sz,0);xB.closePath();xB.fillStyle=`rgba(210,185,135,${a})`;xB.fill()}
+    xB.restore();
+  }
+
+  /* Outward flows to products */
+  if(Math.random()<.05)spawnFlow();
+  for(let i=flows.length-1;i>=0;i--){
+    const f=flows[i];f.prog+=f.spd;if(f.prog>1){flows.splice(i,1);continue}
+    const p=products[f.pi],px=rx+Math.cos(p.ang)*p.dist,py=ry+Math.sin(p.ang)*p.dist;
+    const fx=rx+(px-rx)*f.prog,fy=ry+(py-ry)*f.prog;
+    const fa=Math.sin(f.prog*Math.PI)*f.br;
+    const fg=xB.createRadialGradient(fx,fy,0,fx,fy,8);fg.addColorStop(0,`rgba(${p.clr},${fa*.35})`);fg.addColorStop(1,'transparent');
+    xB.fillStyle=fg;xB.fillRect(fx-8,fy-8,16,16);
+    xB.beginPath();xB.arc(fx,fy,1.8,0,Math.PI*2);xB.fillStyle=`rgba(${p.clr},${fa*.5})`;xB.fill();
+  }
+
+  /* Search queries: AI node → repo → light up stored content */
+  if(Math.random()<.01)spawnQuery();
+  for(let i=queries.length-1;i>=0;i--){
+    const q=queries[i];q.prog+=q.spd;if(q.prog>1){queries.splice(i,1);continue}
+    const aiP=products[0],aix=rx+Math.cos(aiP.ang)*aiP.dist,aiy=ry+Math.sin(aiP.ang)*aiP.dist;
+    if(q.prog<.5){/* Query traveling from AI to repo */
+      const p2=q.prog/.5;
+      const qx=aix+(rx-aix)*p2,qy=aiy+(ry-aiy)*p2;
+      const qa=Math.sin(q.prog*Math.PI)*q.br;
+      const qg=xB.createRadialGradient(qx,qy,0,qx,qy,12);qg.addColorStop(0,`rgba(255,220,150,${qa*.4})`);qg.addColorStop(1,'transparent');
+      xB.fillStyle=qg;xB.fillRect(qx-12,qy-12,24,24);
+      xB.beginPath();xB.arc(qx,qy,2.5,0,Math.PI*2);xB.fillStyle=`rgba(255,245,220,${qa*.6})`;xB.fill();
+    }else{/* Light up stored content */
+      const p2=(q.prog-.5)/.5;
+      const litCount=Math.floor(p2*stored.length*.6);
+      for(let j=0;j<litCount;j++)stored[j%stored.length].lit=Math.min(1,stored[j%stored.length].lit+.03);
+      /* Expanding search ring */
+      const sr=p2*70;
+      xB.beginPath();xB.arc(rx,ry,sr,0,Math.PI*2);
+      xB.strokeStyle=`rgba(255,220,150,${(1-p2)*.1*q.br})`;xB.lineWidth=1.2*(1-p2);xB.stroke();
+    }
+  }
+
+  requestAnimationFrame(drawB);
+}
+requestAnimationFrame(drawB);
+</script>
+</body>
+</html>

@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Datawise — Slide 3</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Sans:ital,wght@0,300;0,400;0,500&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  background:#0a0a09;color:#ede9e0;
+  font-family:'DM Sans',sans-serif;
+  -webkit-font-smoothing:antialiased;
+  overflow:hidden;height:100vh;width:100vw;
+}
+
+/* --- LAYOUT --- */
+.frame{
+  display:grid;
+  grid-template-columns:380px 1fr;
+  height:100vh;
+  position:relative;z-index:2;
+}
+
+/* --- LEFT PANEL --- */
+.left{
+  padding:120px 48px 60px 52px;
+  display:flex;flex-direction:column;
+  justify-content:space-between;
+  border-right:1px solid rgba(201,169,110,.06);
+}
+.left-top{}
+.label-sm{
+  font-size:10px;font-weight:300;letter-spacing:4px;
+  text-transform:uppercase;color:#5a5550;margin-bottom:40px;
+}
+.fw-title{
+  font-family:'DM Sans',sans-serif;
+  font-size:13px;font-weight:400;letter-spacing:6px;
+  text-transform:uppercase;color:#ede9e0;opacity:.8;
+  margin-bottom:4px;
+}
+.fw-title-gold{
+  font-family:'EB Garamond',Georgia,serif;
+  font-size:28px;font-weight:400;letter-spacing:3px;
+  color:#c9a96e;margin-bottom:24px;
+}
+.fw-sub{
+  font-size:11px;font-weight:300;color:#5a5550;
+  letter-spacing:.5px;line-height:1.6;margin-bottom:48px;
+}
+
+/* Phase list */
+.phases{display:flex;flex-direction:column;gap:10px}
+.phase-item{
+  display:flex;align-items:center;gap:12px;
+  padding:8px 0;
+  transition:all .6s ease;
+  cursor:pointer;
+}
+.phase-num{
+  font-size:10px;font-weight:500;letter-spacing:1px;
+  color:#3a3632;min-width:24px;
+  transition:color .6s ease;
+}
+.phase-name{
+  font-size:12px;font-weight:300;letter-spacing:2px;
+  text-transform:uppercase;color:#3a3632;
+  transition:color .6s ease;
+}
+.phase-item.active .phase-num{color:#c9a96e}
+.phase-item.active .phase-name{color:#ede9e0}
+
+/* Left bottom: systems deliver outcomes */
+.left-bottom{
+  font-size:10px;font-weight:300;letter-spacing:3px;
+  text-transform:uppercase;color:#3a3632;
+  line-height:1.8;
+}
+.left-bottom span{color:#5a5550}
+
+/* --- RIGHT PANEL --- */
+.right{
+  position:relative;
+  display:flex;align-items:center;justify-content:center;
+  overflow:hidden;
+}
+
+/* Canvas for circular viz */
+canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+
+/* Phase detail overlay */
+.phase-detail{
+  position:relative;z-index:3;
+  text-align:left;
+  max-width:400px;
+  opacity:0;
+  transform:translateY(12px);
+  transition:all .8s ease;
+}
+.phase-detail.visible{opacity:1;transform:translateY(0)}
+
+.pd-num{
+  font-size:11px;font-weight:500;letter-spacing:2px;
+  color:#c9a96e;margin-bottom:12px;
+}
+.pd-title{
+  font-family:'EB Garamond',Georgia,serif;
+  font-size:clamp(24px,2.5vw,36px);font-weight:400;
+  color:#ede9e0;letter-spacing:1px;margin-bottom:20px;
+}
+.pd-desc{
+  font-size:13px;font-weight:300;color:#6a655e;
+  line-height:1.7;letter-spacing:.3px;margin-bottom:40px;
+}
+.pd-metric-label{
+  font-size:10px;font-weight:300;letter-spacing:3px;
+  text-transform:uppercase;color:#5a5550;margin-bottom:8px;
+}
+.pd-metric{
+  font-family:'EB Garamond',Georgia,serif;
+  font-size:clamp(48px,5vw,72px);font-weight:400;
+  color:#c9a96e;letter-spacing:2px;
+  line-height:1;
+}
+
+/* --- NAV --- */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:10;
+  padding:28px 44px;display:flex;justify-content:space-between;align-items:center;
+}
+nav .logo{font-size:12px;font-weight:400;letter-spacing:5px;text-transform:uppercase;color:#ede9e0;opacity:.7}
+nav .r{font-size:10px;color:#5a5550;letter-spacing:1px;font-weight:300}
+.cta{
+  position:fixed;bottom:32px;right:44px;z-index:10;
+  font-size:11px;color:#6a655e;letter-spacing:1.5px;font-weight:300;
+  cursor:pointer;transition:color .4s;display:flex;align-items:center;gap:8px;text-decoration:none;
+}
+.cta:hover{color:#c9a96e}
+.cta .arrow{font-size:14px;transition:transform .3s}
+.cta:hover .arrow{transform:translateX(4px)}
+
+/* Grid overlay */
+.grid{
+  position:fixed;inset:0;
+  background-image:
+    linear-gradient(rgba(201,169,110,.015) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(201,169,110,.015) 1px,transparent 1px);
+  background-size:80px 80px;pointer-events:none;z-index:1;
+}
+</style>
+</head>
+<body>
+<nav>
+  <span class="logo">Datawise</span>
+  <span class="r">Begin Your Transformation →</span>
+</nav>
+<div class="grid"></div>
+
+<div class="frame">
+  <!-- LEFT -->
+  <div class="left">
+    <div class="left-top">
+      <div class="label-sm">Frameworks / Engineered work</div>
+      <div class="fw-title">The Delivery</div>
+      <div class="fw-title-gold">Framework</div>
+      <div class="fw-sub">Five phases.<br>One system of execution.</div>
+
+      <div class="phases" id="phaseList">
+        <div class="phase-item active" data-idx="0">
+          <span class="phase-num">0.1</span>
+          <span class="phase-name">Assess</span>
+        </div>
+        <div class="phase-item" data-idx="1">
+          <span class="phase-num">0.2</span>
+          <span class="phase-name">Architect</span>
+        </div>
+        <div class="phase-item" data-idx="2">
+          <span class="phase-num">0.3</span>
+          <span class="phase-name">Embed</span>
+        </div>
+        <div class="phase-item" data-idx="3">
+          <span class="phase-num">0.4</span>
+          <span class="phase-name">Accelerate</span>
+        </div>
+        <div class="phase-item" data-idx="4">
+          <span class="phase-num">0.5</span>
+          <span class="phase-name">Sustain</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="left-bottom">
+      <span>Systems</span><br>deliver outcomes.
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="right">
+    <canvas id="viz"></canvas>
+    <div class="phase-detail visible" id="detail"></div>
+  </div>
+</div>
+
+<a class="cta" href="#">Start a conversation <span class="arrow">&#8594;</span></a>
+
+<script>
+// --- PHASE DATA ---
+const phases = [
+  {
+    num:'0.1', title:'Assess',
+    desc:'Map actual workflows, activate teams, align technical landscape with business vision.',
+    metricLabel:'Decision cycles accelerated',
+    metric:'15–25%'
+  },
+  {
+    num:'0.2', title:'Architect',
+    desc:'Ship production-ready systems in 8–12 weeks. Design infrastructure, data layer, and engineering org structure.',
+    metricLabel:'Lead times cut',
+    metric:'20–30%'
+  },
+  {
+    num:'0.3', title:'Embed',
+    desc:'Deploy full engineering teams integrated into your operations. Direct against AI and into core operations.',
+    metricLabel:'Throughput increased',
+    metric:'25–35%'
+  },
+  {
+    num:'0.4', title:'Accelerate',
+    desc:'Operationalize AI through Evolvable.ai and Repox.io. Strengthen systems, processes, and behaviors.',
+    metricLabel:'Rework reduced',
+    metric:'35–50%'
+  },
+  {
+    num:'0.5', title:'Sustain',
+    desc:'System engineered for internal autonomy. Institutionalize practices for self-sufficient operation.',
+    metricLabel:'Operational velocity increased',
+    metric:'40–60%'
+  }
+];
+
+let current = 0;
+const detail = document.getElementById('detail');
+const items = document.querySelectorAll('.phase-item');
+
+function showPhase(idx){
+  current = idx;
+  // Update left list
+  items.forEach((el,i) => {
+    el.classList.toggle('active', i <= idx);
+  });
+  // Update right detail
+  detail.classList.remove('visible');
+  setTimeout(()=>{
+    const p = phases[idx];
+    detail.innerHTML = `
+      <div class="pd-num">${p.num}</div>
+      <div class="pd-title">${p.title}</div>
+      <div class="pd-desc">${p.desc}</div>
+      <div class="pd-metric-label">${p.metricLabel}</div>
+      <div class="pd-metric">${p.metric}</div>
+    `;
+    detail.classList.add('visible');
+  }, 300);
+}
+
+// Click to navigate
+items.forEach(el => {
+  el.addEventListener('click', () => showPhase(+el.dataset.idx));
+});
+
+// Auto-advance
+let timer = setInterval(()=>{
+  showPhase((current+1) % phases.length);
+}, 4500);
+
+// Reset timer on click
+document.getElementById('phaseList').addEventListener('click', ()=>{
+  clearInterval(timer);
+  timer = setInterval(()=>showPhase((current+1)%phases.length), 4500);
+});
+
+// Init
+showPhase(0);
+
+// --- CIRCULAR VISUALIZATION ---
+const cv = document.getElementById('viz');
+const c = cv.getContext('2d');
+let W, H;
+const dpr = Math.min(devicePixelRatio, 2);
+
+function resize(){
+  const r = cv.getBoundingClientRect();
+  W = r.width; H = r.height;
+  cv.width = W * dpr; cv.height = H * dpr;
+  c.setTransform(dpr,0,0,dpr,0,0);
+}
+addEventListener('resize', resize); resize();
+
+// Ring particles
+const ringParts = [];
+for(let i = 0; i < 120; i++){
+  const angle = Math.random() * Math.PI * 2;
+  const ring = Math.floor(Math.random() * 3);
+  const baseR = [140, 200, 260][ring];
+  ringParts.push({
+    angle, ring, baseR,
+    speed: (.0003 + Math.random() * .0006) * (ring % 2 === 0 ? 1 : -1),
+    size: .5 + Math.random() * 1.8,
+    alpha: .1 + Math.random() * .4,
+    pulse: Math.random() * 6.28,
+    ps: .003 + Math.random() * .008
+  });
+}
+
+// Arc segments
+const arcs = [];
+for(let i = 0; i < 5; i++){
+  arcs.push({
+    ring: i % 3,
+    baseR: [140, 200, 260][i % 3],
+    start: (i / 5) * Math.PI * 2,
+    len: .3 + Math.random() * .6,
+    speed: .0004 * (i % 2 === 0 ? 1 : -1),
+    alpha: .04 + Math.random() * .06
+  });
+}
+
+// Floating data points around rings
+const floaters = [];
+for(let i = 0; i < 40; i++){
+  floaters.push({
+    x: (Math.random() - .5) * 500,
+    y: (Math.random() - .5) * 500,
+    vx: (Math.random() - .5) * .08,
+    vy: (Math.random() - .5) * .08,
+    size: .3 + Math.random() * 1,
+    alpha: .05 + Math.random() * .15
+  });
+}
+
+// Signal arcs
+const sigArcs = [];
+function spawnSigArc(){
+  const ring = Math.floor(Math.random() * 3);
+  sigArcs.push({
+    ring, baseR: [140, 200, 260][ring],
+    angle: Math.random() * Math.PI * 2,
+    speed: .01 + Math.random() * .02,
+    life: 0,
+    maxLife: .4 + Math.random() * .3,
+    bright: .3 + Math.random() * .5
+  });
+}
+
+function draw(now){
+  c.clearRect(0,0,W,H);
+  const cx = W * .5, cy = H * .5;
+
+  // Phase-dependent glow intensity
+  const phaseGlow = .02 + (current / 4) * .03;
+
+  // Central glow
+  const cp = .5 + .5 * Math.sin(now / 2000);
+  const cg = c.createRadialGradient(cx, cy, 0, cx, cy, 300);
+  cg.addColorStop(0, `rgba(201,169,110,${phaseGlow + cp * .02})`);
+  cg.addColorStop(.4, `rgba(201,169,110,${.008})`);
+  cg.addColorStop(1, 'transparent');
+  c.fillStyle = cg; c.fillRect(0,0,W,H);
+
+  // Draw ring guides
+  for(let r = 0; r < 3; r++){
+    const rad = [140, 200, 260][r];
+    c.beginPath();
+    c.arc(cx, cy, rad, 0, Math.PI * 2);
+    c.strokeStyle = `rgba(201,169,110,${.04 + r * .01})`;
+    c.lineWidth = .5;
+    c.stroke();
+  }
+
+  // Draw arc segments (rotating)
+  for(const a of arcs){
+    a.start += a.speed;
+    c.beginPath();
+    c.arc(cx, cy, a.baseR, a.start, a.start + a.len);
+    c.strokeStyle = `rgba(201,169,110,${a.alpha})`;
+    c.lineWidth = 1.5;
+    c.stroke();
+  }
+
+  // Signal arcs
+  if(Math.random() < .04) spawnSigArc();
+  for(let i = sigArcs.length - 1; i >= 0; i--){
+    const s = sigArcs[i];
+    s.life += .008;
+    if(s.life > s.maxLife){ sigArcs.splice(i,1); continue; }
+    s.angle += s.speed;
+    const progress = s.life / s.maxLife;
+    const a = Math.sin(progress * Math.PI) * s.bright;
+    const sx = cx + Math.cos(s.angle) * s.baseR;
+    const sy = cy + Math.sin(s.angle) * s.baseR;
+    const g = c.createRadialGradient(sx, sy, 0, sx, sy, 10);
+    g.addColorStop(0, `rgba(220,190,130,${a})`);
+    g.addColorStop(1, 'transparent');
+    c.fillStyle = g;
+    c.fillRect(sx-10, sy-10, 20, 20);
+    // hot core
+    c.beginPath(); c.arc(sx, sy, 1.2, 0, Math.PI*2);
+    c.fillStyle = `rgba(255,240,200,${a*.7})`; c.fill();
+  }
+
+  // Ring particles
+  for(const p of ringParts){
+    p.angle += p.speed;
+    p.pulse += p.ps;
+    const pa = .5 + .5 * Math.sin(p.pulse);
+    const r = p.baseR + Math.sin(p.pulse * 2) * 4;
+    const x = cx + Math.cos(p.angle) * r;
+    const y = cy + Math.sin(p.angle) * r;
+    const a = p.alpha * (.5 + pa * .5);
+
+    // glow
+    const g = c.createRadialGradient(x,y,0,x,y,p.size*4);
+    g.addColorStop(0, `rgba(201,169,110,${a*.3})`);
+    g.addColorStop(1, 'transparent');
+    c.fillStyle = g;
+    c.fillRect(x-p.size*4, y-p.size*4, p.size*8, p.size*8);
+
+    c.beginPath();
+    c.arc(x, y, p.size * (.6 + pa * .4), 0, Math.PI*2);
+    c.fillStyle = `rgba(220,190,140,${a})`;
+    c.fill();
+  }
+
+  // Floating ambient dots
+  for(const f of floaters){
+    f.x += f.vx; f.y += f.vy;
+    if(Math.abs(f.x) > 350) f.vx *= -1;
+    if(Math.abs(f.y) > 350) f.vy *= -1;
+    c.beginPath();
+    c.arc(cx + f.x, cy + f.y, f.size, 0, Math.PI*2);
+    c.fillStyle = `rgba(201,169,110,${f.alpha})`;
+    c.fill();
+  }
+
+  // Phase progress indicator — arc that grows with current phase
+  const progressAngle = ((current + 1) / 5) * Math.PI * 2;
+  c.beginPath();
+  c.arc(cx, cy, 90, -Math.PI/2, -Math.PI/2 + progressAngle);
+  c.strokeStyle = `rgba(201,169,110,.12)`;
+  c.lineWidth = 2;
+  c.stroke();
+
+  // Tick marks for each phase
+  for(let i = 0; i < 5; i++){
+    const a = -Math.PI/2 + (i / 5) * Math.PI * 2;
+    const x1 = cx + Math.cos(a) * 85, y1 = cy + Math.sin(a) * 85;
+    const x2 = cx + Math.cos(a) * 95, y2 = cy + Math.sin(a) * 95;
+    c.beginPath(); c.moveTo(x1,y1); c.lineTo(x2,y2);
+    c.strokeStyle = i <= current ? `rgba(201,169,110,.3)` : `rgba(201,169,110,.08)`;
+    c.lineWidth = 1; c.stroke();
+  }
+
+  requestAnimationFrame(draw);
+}
+requestAnimationFrame(draw);
+</script>
+</body>
+</html>

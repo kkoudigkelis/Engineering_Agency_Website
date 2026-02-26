@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Datawise — Slide 2</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Sans:wght@300;400;500&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  background:#060605;color:#ede9e0;
+  font-family:'DM Sans',sans-serif;
+  -webkit-font-smoothing:antialiased;
+  overflow:hidden;height:100vh;width:100vw;
+}
+canvas{position:absolute;inset:0;width:100%;height:100%}
+
+/* Darkened overlay so text reads clearly */
+.dim{
+  position:absolute;inset:0;
+  background:radial-gradient(ellipse at 50% 50%,rgba(6,6,5,.55) 0%,rgba(6,6,5,.8) 80%);
+  pointer-events:none;
+}
+
+/* --- TEXT LAYERS --- */
+.stage{
+  position:absolute;inset:0;z-index:3;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  pointer-events:none;
+}
+
+/* Phase 1: "The landscape" — small, quiet opener */
+.opener{
+  font-size:clamp(9px,1vw,12px);
+  font-weight:300;
+  letter-spacing:clamp(3px,.5vw,6px);
+  text-transform:uppercase;
+  color:#5a5550;
+  margin-bottom:48px;
+  opacity:0;
+  animation:fadeUp .8s ease .6s forwards;
+}
+
+/* Phase 2: Challenge lines — appear staggered */
+.challenges{
+  display:flex;flex-direction:column;
+  align-items:center;gap:20px;
+  margin-bottom:56px;
+}
+.challenge{
+  font-family:'EB Garamond',Georgia,serif;
+  font-size:clamp(16px,1.8vw,24px);
+  font-weight:400;
+  color:#ede9e0;
+  opacity:0;
+  text-align:center;
+  max-width:600px;
+  line-height:1.5;
+  letter-spacing:.5px;
+}
+.challenge:nth-child(1){animation:fadeUp 1s ease 1.4s forwards}
+.challenge:nth-child(2){animation:fadeUp 1s ease 2.2s forwards}
+.challenge:nth-child(3){animation:fadeUp 1s ease 3.0s forwards}
+.challenge:nth-child(4){animation:fadeUp 1s ease 3.8s forwards}
+
+/* Thin separator */
+.sep{
+  width:40px;height:1px;
+  background:rgba(201,169,110,.2);
+  margin-bottom:40px;
+  opacity:0;
+  animation:fadeUp .6s ease 5s forwards;
+}
+
+/* Phase 3: Reframe — gold, larger */
+.reframe{
+  font-family:'EB Garamond',Georgia,serif;
+  font-size:clamp(20px,2.4vw,34px);
+  font-weight:400;
+  color:#c9a96e;
+  text-align:center;
+  max-width:640px;
+  line-height:1.4;
+  letter-spacing:1px;
+  opacity:0;
+  animation:fadeUp 1.4s ease 5.4s forwards;
+}
+
+@keyframes fadeUp{
+  from{opacity:0;transform:translateY(8px)}
+  to{opacity:1;transform:translateY(0)}
+}
+
+/* Nav */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:10;
+  padding:28px 44px;display:flex;justify-content:space-between;align-items:center;
+}
+nav .logo{font-size:12px;font-weight:400;letter-spacing:5px;text-transform:uppercase;color:#ede9e0;opacity:.7}
+nav .r{font-size:10px;color:#5a5550;letter-spacing:1px;font-weight:300}
+
+.cta{
+  position:fixed;bottom:32px;right:44px;z-index:10;
+  font-size:11px;color:#6a655e;letter-spacing:1.5px;font-weight:300;
+  cursor:pointer;transition:color .4s;display:flex;align-items:center;gap:8px;text-decoration:none;
+}
+.cta:hover{color:#c9a96e}
+.cta .arrow{font-size:14px;transition:transform .3s}
+.cta:hover .arrow{transform:translateX(4px)}
+.since{position:fixed;bottom:32px;left:44px;z-index:10;font-size:9px;letter-spacing:3px;text-transform:uppercase;color:#3a3632}
+.scroll-line{
+  position:fixed;bottom:0;left:50%;width:1px;height:48px;
+  background:linear-gradient(to bottom,transparent,rgba(201,169,110,.15));
+  z-index:10;animation:pulse 2.5s ease infinite;
+}
+@keyframes pulse{0%,100%{opacity:.2;height:48px}50%{opacity:.6;height:60px}}
+</style>
+</head>
+<body>
+<nav>
+  <span class="logo">Datawise</span>
+  <span class="r">hello@datawise.ai</span>
+</nav>
+
+<canvas id="net"></canvas>
+<div class="dim"></div>
+
+<div class="stage">
+  <div class="opener">The landscape</div>
+
+  <div class="challenges">
+    <div class="challenge">Growth demands engineering capacity that doesn't exist yet.</div>
+    <div class="challenge">Senior talent takes months to find — and longer to retain.</div>
+    <div class="challenge">Every quarter without the right architecture is a quarter compounding against you.</div>
+    <div class="challenge">AI is rewriting every industry. Simultaneously.</div>
+  </div>
+
+  <div class="sep"></div>
+
+  <div class="reframe">What if your engineering organization was already built?</div>
+</div>
+
+<a class="cta" href="#">Start a conversation <span class="arrow">&#8594;</span></a>
+<div class="since">Since 2006</div>
+<div class="scroll-line"></div>
+
+<script>
+const cv=document.getElementById('net'),c=cv.getContext('2d');
+let W,H;const dpr=Math.min(devicePixelRatio,2);
+function resize(){W=innerWidth;H=innerHeight;cv.width=W*dpr;cv.height=H*dpr;c.setTransform(dpr,0,0,dpr,0,0);for(const n of nodes){n.x=n.ox*W;n.y=n.oy*H}}
+addEventListener('resize',resize);
+
+const N=160,nodes=[],
+cls=[{x:.25,y:.3,r:.16},{x:.72,y:.5,r:.18},{x:.48,y:.72,r:.14},{x:.18,y:.65,r:.11},{x:.78,y:.22,r:.12},{x:.5,y:.28,r:.14}];
+for(let i=0;i<N;i++){
+  const cl=cls[Math.floor(Math.random()*cls.length)],
+  a=Math.random()*Math.PI*2,d=Math.random()*cl.r;
+  nodes.push({ox:cl.x+Math.cos(a)*d,oy:cl.y+Math.sin(a)*d,x:0,y:0,
+    vx:(Math.random()-.5)*.1,vy:(Math.random()-.5)*.1,
+    r:Math.random()*1.8+.6,pulse:Math.random()*6.28,
+    ps:.004+Math.random()*.008,ba:.12+Math.random()*.3});
+}
+
+const CONN=110,CONN2=CONN*CONN,sigs=[];
+function spawnSig(){
+  const a=Math.floor(Math.random()*N),b=Math.floor(Math.random()*N);
+  if(a===b)return;const dx=nodes[a].x-nodes[b].x,dy=nodes[a].y-nodes[b].y;
+  if(dx*dx+dy*dy<CONN2*1.4)sigs.push({f:a,t:b,p:0,s:.007+Math.random()*.01});
+}
+
+let mx=0,my=0;
+addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY});
+
+resize();
+
+function draw(now){
+  c.clearRect(0,0,W,H);
+  for(const n of nodes){
+    n.x+=n.vx;n.y+=n.vy;
+    n.vx+=(n.ox*W-n.x)*.0003;n.vy+=(n.oy*H-n.y)*.0003;
+    const dx=n.x-mx,dy=n.y-my,d2=dx*dx+dy*dy;
+    if(d2<12000&&d2>1){const f=.12/Math.sqrt(d2);n.vx+=dx*f;n.vy+=dy*f}
+    n.vx*=.997;n.vy*=.997;n.pulse+=n.ps;
+  }
+  // edges
+  for(let i=0;i<N;i++)for(let j=i+1;j<N;j++){
+    const dx=nodes[i].x-nodes[j].x,dy=nodes[i].y-nodes[j].y,d2=dx*dx+dy*dy;
+    if(d2<CONN2){
+      c.beginPath();c.moveTo(nodes[i].x,nodes[i].y);c.lineTo(nodes[j].x,nodes[j].y);
+      c.strokeStyle=`rgba(201,169,110,${(1-Math.sqrt(d2)/CONN)*.07})`;c.lineWidth=.5;c.stroke();
+    }
+  }
+  // signals
+  if(Math.random()<.06)spawnSig();
+  for(let i=sigs.length-1;i>=0;i--){
+    const s=sigs[i];s.p+=s.s;if(s.p>1){sigs.splice(i,1);continue}
+    const a=nodes[s.f],b=nodes[s.t],sx=a.x+(b.x-a.x)*s.p,sy=a.y+(b.y-a.y)*s.p,
+    sa=Math.sin(s.p*Math.PI)*.5;
+    const g=c.createRadialGradient(sx,sy,0,sx,sy,7);
+    g.addColorStop(0,`rgba(201,169,110,${sa})`);g.addColorStop(1,'transparent');
+    c.fillStyle=g;c.fillRect(sx-7,sy-7,14,14);
+  }
+  // nodes
+  for(const n of nodes){
+    const pa=.5+.5*Math.sin(n.pulse),a=n.ba*(.6+pa*.4);
+    const g=c.createRadialGradient(n.x,n.y,0,n.x,n.y,n.r*3.5);
+    g.addColorStop(0,`rgba(201,169,110,${a*.25})`);g.addColorStop(1,'transparent');
+    c.fillStyle=g;c.fillRect(n.x-n.r*3.5,n.y-n.r*3.5,n.r*7,n.r*7);
+    c.beginPath();c.arc(n.x,n.y,n.r*(.7+pa*.3),0,Math.PI*2);
+    c.fillStyle=`rgba(201,169,110,${a})`;c.fill();
+  }
+  requestAnimationFrame(draw);
+}
+requestAnimationFrame(draw);
+</script>
+</body>
+</html>
